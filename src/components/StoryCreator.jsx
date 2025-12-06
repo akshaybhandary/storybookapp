@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { generateStoryContent, generatePageImage } from '../services/openRouterAPI';
+import { generateStoryContent, generatePageImage, analyzeChildPhoto } from '../services/openRouterAPI';
 import { getApiKey } from '../services/storageService';
 
 export default function StoryCreator({ onClose, onStoryGenerated }) {
@@ -48,19 +48,31 @@ export default function StoryCreator({ onClose, onStoryGenerated }) {
         try {
             const pageCount = length === 'short' ? 5 : length === 'medium' ? 8 : 12;
 
+            // Step 1: Analyze the child's photo for consistent character description
+            setLoadingText('Analyzing your child\'s features for character consistency...');
+            const characterDescription = await analyzeChildPhoto(photoPreview, childName, apiKey);
+
+            // Step 2: Generate the story content
             setLoadingText('Crafting your magical story...');
             const storyContent = await generateStoryContent(childName, storyPrompt, pageCount, apiKey);
 
+            // Step 3: Generate illustrations with consistent character
             setLoadingText('Creating beautiful illustrations...');
             const pages = [];
 
             for (let i = 0; i < storyContent.pages.length; i++) {
                 const pageData = storyContent.pages[i];
-                setLoadingText(`Illustrating page ${i + 1} of ${storyContent.pages.length}...`);
+                setLoadingText(`Illustrating page ${i + 1} of ${storyContent.pages.length}... (keeping ${childName} consistent)`);
 
-                // Will throw error if image generation fails
-                // Pass the child's photo so the AI can base the character on it
-                const imageUrl = await generatePageImage(pageData.imagePrompt, apiKey, i + 1, photoPreview, childName);
+                // Pass photo, name, AND character description for consistency
+                const imageUrl = await generatePageImage(
+                    pageData.imagePrompt,
+                    apiKey,
+                    i + 1,
+                    photoPreview,
+                    childName,
+                    characterDescription  // New: analyzed character for consistency
+                );
                 pages.push({
                     pageNumber: pageData.pageNumber,
                     text: pageData.text,

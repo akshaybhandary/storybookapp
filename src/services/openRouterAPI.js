@@ -127,21 +127,137 @@ Make the story age-appropriate, engaging, and magical. Each page should flow nat
 }
 
 /**
+ * Analyze child's photo to extract detailed character description
+ * This ensures consistency across all generated images
+ */
+export async function analyzeChildPhoto(photoBase64, childName, apiKey) {
+    logger.info('CHARACTER', 'Analyzing child photo for character consistency');
+
+    try {
+        const endpoint = `${API_BASE_URL}/chat/completions`;
+
+        const analysisPrompt = `Analyze this photo of a child named ${childName} and provide a detailed character description that can be used consistently across multiple children's book illustrations.
+
+Please describe in detail:
+1. Skin tone (be specific: light, medium, olive, tan, brown, dark brown, etc.)
+2. Hair color (specific shade)
+3. Hair style (length, texture, any distinctive features)
+4. Eye color
+5. Approximate age
+6. Any distinctive features (glasses, dimples, freckles, etc.)
+7. Face shape
+
+Respond with a JSON object:
+{
+    "characterDescription": "A detailed paragraph describing the child's appearance that can be used as a character reference for illustrations",
+    "skinTone": "specific skin tone",
+    "hairColor": "specific hair color",
+    "hairStyle": "description of hair",
+    "eyeColor": "eye color",
+    "approximateAge": "age range like 4-6 years",
+    "distinctiveFeatures": "any notable features or 'none'",
+    "shortDescription": "Brief 1-sentence description for quick reference"
+}`;
+
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${apiKey}`,
+                'Content-Type': 'application/json',
+                'HTTP-Referer': window.location.origin,
+                'X-Title': 'StoryBook Magic'
+            },
+            body: JSON.stringify({
+                model: 'google/gemini-2.5-flash-preview-05-20',
+                messages: [
+                    {
+                        role: 'user',
+                        content: [
+                            {
+                                type: 'image_url',
+                                image_url: { url: photoBase64 }
+                            },
+                            {
+                                type: 'text',
+                                text: analysisPrompt
+                            }
+                        ]
+                    }
+                ],
+                response_format: { type: 'json_object' }
+            })
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            logger.warn('CHARACTER', 'Photo analysis failed, using basic description', { error: errorText });
+            return {
+                characterDescription: `A child named ${childName}`,
+                shortDescription: childName
+            };
+        }
+
+        const data = await response.json();
+        const content = data.choices[0].message.content;
+
+        try {
+            const characterData = JSON.parse(content);
+            logger.info('CHARACTER', 'Character analysis complete', {
+                skinTone: characterData.skinTone,
+                hairColor: characterData.hairColor,
+                approximateAge: characterData.approximateAge
+            });
+            return characterData;
+        } catch (e) {
+            logger.warn('CHARACTER', 'Failed to parse character analysis', { error: e.message });
+            return {
+                characterDescription: `A child named ${childName}`,
+                shortDescription: childName
+            };
+        }
+
+    } catch (error) {
+        logger.error('CHARACTER', 'Character analysis error', error);
+        return {
+            characterDescription: `A child named ${childName}`,
+            shortDescription: childName
+        };
+    }
+}
+
+/**
  * Generate image using OpenRouter image generation
  * Uses gemini-2.5-flash-image for image generation
- * Includes child's photo as reference so generated images match the child
+ * Includes child's photo AND character description for consistency
  */
-export async function generatePageImage(imagePrompt, apiKey, pageNumber = 0, childPhoto = null, childName = '') {
+export async function generatePageImage(imagePrompt, apiKey, pageNumber = 0, childPhoto = null, childName = '', characterDescription = null) {
     const startTime = performance.now();
 
     logger.imageGenerationStart(pageNumber, imagePrompt);
 
     try {
+        // Build character reference from the analyzed description
+        let characterRef = '';
+        if (characterDescription && characterDescription.characterDescription) {
+            characterRef = `
+CHARACTER REFERENCE (MAINTAIN EXACT CONSISTENCY):
+${characterDescription.characterDescription}
+- Skin tone: ${characterDescription.skinTone || 'match the reference photo'}
+- Hair: ${characterDescription.hairColor || ''} ${characterDescription.hairStyle || ''}
+- Eyes: ${characterDescription.eyeColor || 'match the reference photo'}
+- Age appearance: ${characterDescription.approximateAge || 'young child'}
+${characterDescription.distinctiveFeatures && characterDescription.distinctiveFeatures !== 'none' ? `- Distinctive features: ${characterDescription.distinctiveFeatures}` : ''}
+
+The main character ${childName} MUST look EXACTLY like this description in EVERY illustration. Consistency is critical.`;
+        }
+
         // Create prompt that references the child's appearance from the photo
         const enhancedPrompt = `Create a children's book illustration: ${imagePrompt}. 
+${characterRef}
 
 IMPORTANT: The main character ${childName} should look EXACTLY like the child in the reference photo provided. 
 Match their skin tone, hair color, hair style, and facial features precisely.
+Keep the character appearance CONSISTENT - this is page ${pageNumber} of a storybook, the same child must appear throughout.
 
 Style: Vibrant, colorful, whimsical, friendly, cute characters. 
 Art style: Digital illustration suitable for ages 4-8, similar to modern children's picture books.
