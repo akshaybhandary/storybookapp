@@ -56,7 +56,13 @@ export default function StoryCreator({ onClose, onStoryGenerated }) {
             setLoadingText('Crafting your magical story...');
             const storyContent = await generateStoryContent(childName, storyPrompt, pageCount, apiKey);
 
-            // Step 3: Generate illustrations with consistent character
+            // Log the story context for debugging
+            console.log('📚 Story context:', {
+                outfit: storyContent.characterOutfit,
+                locations: storyContent.locations
+            });
+
+            // Step 3: Generate illustrations with consistent character, outfit, and locations
             setLoadingText('Creating beautiful illustrations...');
             const pages = [];
 
@@ -64,14 +70,22 @@ export default function StoryCreator({ onClose, onStoryGenerated }) {
                 const pageData = storyContent.pages[i];
                 setLoadingText(`Illustrating page ${i + 1} of ${storyContent.pages.length}... (keeping ${childName} consistent)`);
 
-                // Pass photo, name, AND character description for consistency
+                // Build story context with outfit and current location
+                const storyContext = {
+                    characterOutfit: storyContent.characterOutfit,
+                    locations: storyContent.locations,
+                    currentLocation: pageData.location  // The location for this specific page
+                };
+
+                // Pass photo, name, character description, AND story context for full consistency
                 const imageUrl = await generatePageImage(
                     pageData.imagePrompt,
                     apiKey,
                     i + 1,
                     photoPreview,
                     childName,
-                    characterDescription  // New: analyzed character for consistency
+                    characterDescription,
+                    storyContext  // New: outfit and location info
                 );
                 pages.push({
                     pageNumber: pageData.pageNumber,

@@ -18,20 +18,36 @@ The story should be about: ${theme}
 
 The main character's name is: ${childName}
 
+IMPORTANT CONSISTENCY RULES:
+1. OUTFIT: ${childName} must wear the SAME outfit throughout the entire story. Define it in the first page and keep it consistent.
+2. LOCATIONS: If a location appears multiple times (like a bedroom, forest, etc.), it should look the SAME each time - same colors, same furniture, same style.
+3. STYLE: All illustrations should have a consistent art style and color palette throughout the book.
+
 Please create a JSON response with the following structure:
 {
     "title": "A catchy story title (without the character name)",
+    "characterOutfit": "Detailed description of what ${childName} is wearing throughout the story (e.g., 'a bright red t-shirt with a star, blue jeans, and white sneakers')",
+    "locations": {
+        "location1Name": "Detailed description of this location's appearance (colors, key items, style)",
+        "location2Name": "Detailed description of this location's appearance"
+    },
     "pages": [
         {
             "pageNumber": 1,
             "text": "The story text for this page (2-3 sentences)",
-            "imagePrompt": "A detailed description for an illustration showing this scene (mention that ${childName} is the main character)"
+            "location": "The location name from the locations object where this scene takes place",
+            "imagePrompt": "A detailed description for an illustration. MUST include: 1) ${childName} wearing [repeat the exact outfit], 2) The specific location with consistent details, 3) The action/scene"
         },
         ... (${pageCount} pages total)
     ]
 }
 
-Make the story age-appropriate, engaging, and magical. Each page should flow naturally to the next. The image prompts should describe vibrant, colorful scenes suitable for a children's book illustration.`;
+CRITICAL: In each imagePrompt, you MUST:
+- Describe ${childName}'s outfit EXACTLY the same way every time
+- Describe locations EXACTLY the same way when they repeat
+- Never change the character's clothes or a location's appearance mid-story
+
+Make the story age-appropriate, engaging, and magical. Each page should flow naturally to the next.`;
 
     try {
         const endpoint = `${API_BASE_URL}/chat/completions`;
@@ -228,9 +244,9 @@ Respond with a JSON object:
 /**
  * Generate image using OpenRouter image generation
  * Uses gemini-2.5-flash-image for image generation
- * Includes child's photo AND character description for consistency
+ * Includes child's photo, character description, and story context for consistency
  */
-export async function generatePageImage(imagePrompt, apiKey, pageNumber = 0, childPhoto = null, childName = '', characterDescription = null) {
+export async function generatePageImage(imagePrompt, apiKey, pageNumber = 0, childPhoto = null, childName = '', characterDescription = null, storyContext = null) {
     const startTime = performance.now();
 
     logger.imageGenerationStart(pageNumber, imagePrompt);
@@ -240,28 +256,43 @@ export async function generatePageImage(imagePrompt, apiKey, pageNumber = 0, chi
         let characterRef = '';
         if (characterDescription && characterDescription.characterDescription) {
             characterRef = `
-CHARACTER REFERENCE (MAINTAIN EXACT CONSISTENCY):
+CHARACTER APPEARANCE (MAINTAIN EXACT CONSISTENCY):
 ${characterDescription.characterDescription}
 - Skin tone: ${characterDescription.skinTone || 'match the reference photo'}
 - Hair: ${characterDescription.hairColor || ''} ${characterDescription.hairStyle || ''}
 - Eyes: ${characterDescription.eyeColor || 'match the reference photo'}
 - Age appearance: ${characterDescription.approximateAge || 'young child'}
-${characterDescription.distinctiveFeatures && characterDescription.distinctiveFeatures !== 'none' ? `- Distinctive features: ${characterDescription.distinctiveFeatures}` : ''}
-
-The main character ${childName} MUST look EXACTLY like this description in EVERY illustration. Consistency is critical.`;
+${characterDescription.distinctiveFeatures && characterDescription.distinctiveFeatures !== 'none' ? `- Distinctive features: ${characterDescription.distinctiveFeatures}` : ''}`;
         }
 
-        // Create prompt that references the child's appearance from the photo
-        const enhancedPrompt = `Create a children's book illustration: ${imagePrompt}. 
+        // Build story context (outfit and locations)
+        let storyConsistency = '';
+        if (storyContext) {
+            storyConsistency = `
+OUTFIT (MUST BE EXACTLY THE SAME IN ALL ILLUSTRATIONS):
+${storyContext.characterOutfit || 'match the reference photo clothing'}
+
+${storyContext.currentLocation && storyContext.locations && storyContext.locations[storyContext.currentLocation] ? `
+CURRENT LOCATION - ${storyContext.currentLocation.toUpperCase()}:
+${storyContext.locations[storyContext.currentLocation]}
+If this location appeared before, it MUST look identical.
+` : ''}`;
+        }
+
+        // Create prompt with all consistency information
+        const enhancedPrompt = `Create a children's book illustration: ${imagePrompt}
 ${characterRef}
+${storyConsistency}
 
-IMPORTANT: The main character ${childName} should look EXACTLY like the child in the reference photo provided. 
-Match their skin tone, hair color, hair style, and facial features precisely.
-Keep the character appearance CONSISTENT - this is page ${pageNumber} of a storybook, the same child must appear throughout.
+CRITICAL CONSISTENCY REQUIREMENTS:
+1. The main character ${childName} MUST look like the reference photo (same face, skin tone, hair)
+2. The character MUST wear the EXACT same outfit described above
+3. The location/background MUST match the description exactly
+4. This is page ${pageNumber} of a storybook - everything must be consistent with other pages
 
-Style: Vibrant, colorful, whimsical, friendly, cute characters. 
-Art style: Digital illustration suitable for ages 4-8, similar to modern children's picture books.
-Quality: High quality, detailed, professional children's book illustration.`;
+Style: Vibrant, colorful, whimsical, friendly children's book illustration.
+Art style: Modern digital illustration suitable for ages 4-8.
+Quality: High quality, detailed, professional.`;
 
         const endpoint = `${API_BASE_URL}/chat/completions`;
 
