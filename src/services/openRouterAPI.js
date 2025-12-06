@@ -1,7 +1,33 @@
 // OpenRouter API Service
 import logger from '../utils/logger';
 
-const API_BASE_URL = 'https://openrouter.ai/api/v1';
+// Use Netlify serverless function in production, direct API in development
+const isProduction = import.meta.env.PROD;
+const API_BASE_URL = isProduction
+    ? '/.netlify/functions'  // Netlify serverless function
+    : 'https://openrouter.ai/api/v1';  // Direct API for local dev
+
+// Endpoint paths differ based on environment
+const getCompletionsEndpoint = () => isProduction
+    ? `${API_BASE_URL}/openrouter`  // Our serverless function
+    : `${API_BASE_URL}/chat/completions`;  // Direct OpenRouter API
+
+// Build headers - only include API key in development (production uses serverless function)
+const getHeaders = (apiKey) => {
+    const headers = {
+        'Content-Type': 'application/json',
+    };
+
+    // Only add auth header in development (direct API calls)
+    // In production, the serverless function handles authentication
+    if (!isProduction && apiKey) {
+        headers['Authorization'] = `Bearer ${apiKey}`;
+        headers['HTTP-Referer'] = window.location.origin;
+        headers['X-Title'] = 'StoryBook Magic';
+    }
+
+    return headers;
+};
 
 /**
  * Generate story content using Gemini
@@ -50,7 +76,7 @@ CRITICAL: In each imagePrompt, you MUST:
 Make the story age-appropriate, engaging, and magical. Each page should flow naturally to the next.`;
 
     try {
-        const endpoint = `${API_BASE_URL}/chat/completions`;
+        const endpoint = getCompletionsEndpoint();
         const requestBody = {
             model: 'google/gemini-3-pro-preview',
             messages: [
@@ -71,12 +97,7 @@ Make the story age-appropriate, engaging, and magical. Each page should flow nat
         const fetchStart = performance.now();
         const response = await fetch(endpoint, {
             method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${apiKey}`,
-                'Content-Type': 'application/json',
-                'HTTP-Referer': window.location.origin,
-                'X-Title': 'StoryBook Magic'
-            },
+            headers: getHeaders(apiKey),
             body: JSON.stringify(requestBody)
         });
 
@@ -150,7 +171,7 @@ export async function analyzeChildPhoto(photoBase64, childName, apiKey) {
     logger.info('CHARACTER', 'Analyzing child photo for character consistency');
 
     try {
-        const endpoint = `${API_BASE_URL}/chat/completions`;
+        const endpoint = getCompletionsEndpoint();
 
         const analysisPrompt = `Analyze this photo of a child named ${childName} and provide a detailed character description that can be used consistently across multiple children's book illustrations.
 
@@ -177,12 +198,7 @@ Respond with a JSON object:
 
         const response = await fetch(endpoint, {
             method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${apiKey}`,
-                'Content-Type': 'application/json',
-                'HTTP-Referer': window.location.origin,
-                'X-Title': 'StoryBook Magic'
-            },
+            headers: getHeaders(apiKey),
             body: JSON.stringify({
                 model: 'google/gemini-2.5-flash-preview-05-20',
                 messages: [
@@ -294,7 +310,7 @@ Style: Vibrant, colorful, whimsical, friendly children's book illustration.
 Art style: Modern digital illustration suitable for ages 4-8.
 Quality: High quality, detailed, professional.`;
 
-        const endpoint = `${API_BASE_URL}/chat/completions`;
+        const endpoint = getCompletionsEndpoint();
 
         // Build message content - include photo if available
         let messageContent;
@@ -347,12 +363,7 @@ Quality: High quality, detailed, professional.`;
         const fetchStart = performance.now();
         const response = await fetch(endpoint, {
             method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${apiKey}`,
-                'Content-Type': 'application/json',
-                'HTTP-Referer': window.location.origin,
-                'X-Title': 'StoryBook Magic'
-            },
+            headers: getHeaders(apiKey),
             body: JSON.stringify(requestBody)
         });
 

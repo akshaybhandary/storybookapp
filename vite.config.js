@@ -4,7 +4,7 @@ import react from '@vitejs/plugin-react'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
-  base: '/storybookapp/',  // GitHub Pages subdirectory
+  base: '/',  // Root path for Netlify
   build: {
     outDir: 'dist',
     sourcemap: true,
