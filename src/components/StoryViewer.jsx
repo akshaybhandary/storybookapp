@@ -63,68 +63,68 @@ export default function StoryViewer({ story, onClose, onStorySaved }) {
                         </div>
                     </div>
 
-                    <div className="storybook-pages">
+                    {/* Book-style spread layout */}
+                    <div className="book-spread">
                         {story.pages.map((page, index) => {
                             const hue1 = (index * 40 + 200) % 360;
                             const hue2 = (hue1 + 80) % 360;
                             const icon = themeIcons[index % themeIcons.length];
+                            const isEvenPage = index % 2 === 0;
 
                             return (
                                 <div
                                     key={page.pageNumber}
-                                    className={`story-page ${index === currentPage ? 'active' : ''}`}
-                                    style={{ display: index === currentPage ? 'block' : 'none' }}
+                                    className={`book-page-spread ${index === currentPage ? 'active' : ''}`}
+                                    style={{ display: index === currentPage ? 'flex' : 'none' }}
                                 >
-                                    {page.image ? (
-                                        <img src={page.image} alt={`Page ${page.pageNumber}`} className="story-page-image" />
-                                    ) : (
-                                        <div style={{
-                                            width: '100%',
-                                            height: '350px',
-                                            background: `linear-gradient(135deg, hsl(${hue1}, 75%, 70%) 0%, hsl(${hue2}, 75%, 75%) 50%, hsl(${hue1}, 75%, 80%) 100%)`,
-                                            borderRadius: '16px',
-                                            marginBottom: '2rem',
-                                            display: 'flex',
-                                            flexDirection: 'column',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
-                                            position: 'relative',
-                                            overflow: 'hidden'
-                                        }}>
-                                            <div style={{
-                                                position: 'absolute',
-                                                top: 0,
-                                                left: 0,
-                                                right: 0,
-                                                bottom: 0,
-                                                background: 'radial-gradient(circle at 30% 40%, rgba(255,255,255,0.3) 0%, transparent 50%)'
-                                            }}></div>
-                                            <div style={{
-                                                fontSize: '5rem',
-                                                marginBottom: '1rem',
-                                                position: 'relative',
-                                                zIndex: 1,
-                                                filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.1))'
-                                            }}>
-                                                {icon}
+                                    {/* Left page - Image */}
+                                    <div className={`book-page left-page ${isEvenPage ? 'image-page' : 'text-page'}`}>
+                                        {isEvenPage ? (
+                                            // Image on left
+                                            page.image ? (
+                                                <img src={page.image} alt={`Page ${page.pageNumber}`} className="book-illustration" />
+                                            ) : (
+                                                <div className="placeholder-illustration" style={{
+                                                    background: `linear-gradient(135deg, hsl(${hue1}, 75%, 70%) 0%, hsl(${hue2}, 75%, 75%) 50%, hsl(${hue1}, 75%, 80%) 100%)`
+                                                }}>
+                                                    <div className="placeholder-icon">{icon}</div>
+                                                    <div className="placeholder-label">Illustration</div>
+                                                </div>
+                                            )
+                                        ) : (
+                                            // Text on left for odd pages
+                                            <div className="book-text-content">
+                                                <span className="page-number">Page {page.pageNumber}</span>
+                                                <p className="book-story-text">{page.text}</p>
                                             </div>
-                                            <div style={{
-                                                background: 'rgba(255,255,255,0.9)',
-                                                padding: '0.75rem 1.5rem',
-                                                borderRadius: '30px',
-                                                fontWeight: 600,
-                                                color: '#333',
-                                                fontSize: '0.95rem',
-                                                position: 'relative',
-                                                zIndex: 1,
-                                                boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-                                            }}>
-                                                Page {page.pageNumber}
+                                        )}
+                                    </div>
+
+                                    {/* Right page - Text (or Image for odd pages) */}
+                                    <div className={`book-page right-page ${isEvenPage ? 'text-page' : 'image-page'}`}>
+                                        {isEvenPage ? (
+                                            // Text on right
+                                            <div className="book-text-content">
+                                                <span className="page-number">Page {page.pageNumber}</span>
+                                                <p className="book-story-text">{page.text}</p>
                                             </div>
-                                        </div>
-                                    )}
-                                    <p className="story-page-text">{page.text}</p>
+                                        ) : (
+                                            // Image on right for odd pages
+                                            page.image ? (
+                                                <img src={page.image} alt={`Page ${page.pageNumber}`} className="book-illustration" />
+                                            ) : (
+                                                <div className="placeholder-illustration" style={{
+                                                    background: `linear-gradient(135deg, hsl(${hue1}, 75%, 70%) 0%, hsl(${hue2}, 75%, 75%) 50%, hsl(${hue1}, 75%, 80%) 100%)`
+                                                }}>
+                                                    <div className="placeholder-icon">{icon}</div>
+                                                    <div className="placeholder-label">Illustration</div>
+                                                </div>
+                                            )
+                                        )}
+                                    </div>
+
+                                    {/* Book spine/gutter effect */}
+                                    <div className="book-spine"></div>
                                 </div>
                             );
                         })}
