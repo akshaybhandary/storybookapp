@@ -49,7 +49,7 @@ export default function StoryCreator({ onClose, onStoryGenerated }) {
             const pageCount = length === 'short' ? 5 : length === 'medium' ? 8 : 12;
 
             // Step 1: Analyze the child's photo for consistent character description
-            setLoadingText('Analyzing your child\'s features for character consistency...');
+            setLoadingText('Getting to know your little star...');
             const characterDescription = await analyzeChildPhoto(photoPreview, childName, apiKey);
 
             // Step 2: Generate the story content
