@@ -56,19 +56,13 @@ export default function StoryCreator({ onClose, onStoryGenerated }) {
             setLoadingText('Crafting your magical story...');
             const storyContent = await generateStoryContent(childName, storyPrompt, pageCount, apiKey);
 
-            // Log the story context for debugging
-            console.log('📚 Story context:', {
-                outfit: storyContent.characterOutfit,
-                locations: storyContent.locations
-            });
-
             // Step 3: Generate illustrations with consistent character, outfit, and locations
             setLoadingText('Creating beautiful illustrations...');
             const pages = [];
 
             for (let i = 0; i < storyContent.pages.length; i++) {
                 const pageData = storyContent.pages[i];
-                setLoadingText(`Illustrating page ${i + 1} of ${storyContent.pages.length}... (keeping ${childName} consistent)`);
+                setLoadingText(`Illustrating page ${i + 1} of ${storyContent.pages.length}...`);
 
                 // Build story context with outfit and current location
                 const storyContext = {
