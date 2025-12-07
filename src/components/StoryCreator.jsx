@@ -62,9 +62,10 @@ export default function StoryCreator({ onClose, onStoryGenerated }) {
                 setProgress(Math.min(Math.round((currentStep / totalSteps) * 100), 95));
             };
 
-            // Step 1: TEMPORARILY SKIP character analysis (was causing hangs)
-            setLoadingText('Preparing your story...');
-            const characterDescription = null; // Skip analysis for now
+            // Step 1: Analyze the child's photo for consistent character description
+            setLoadingText('Getting to know your little star...');
+            const characterDescription = await analyzeChildPhoto(photoPreview, childName, apiKey);
+            incrementProgress();
 
             // Step 2: Generate the story content
             setLoadingText('Crafting your magical story...');
