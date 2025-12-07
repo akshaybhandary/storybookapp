@@ -98,6 +98,26 @@ export default function StoryViewer({ story, onClose, onStorySaved }) {
                     {/* Book-style spread layout */}
                     <div className="book-spread">
                         {story.pages.map((page, index) => {
+                            // Special rendering for cover page
+                            if (page.isCover) {
+                                return (
+                                    <div
+                                        key={page.pageNumber}
+                                        className={`book-page-spread cover-spread ${index === currentPage ? 'active' : ''}`}
+                                        style={{ display: index === currentPage ? 'flex' : 'none' }}
+                                    >
+                                        <div className="book-cover-page">
+                                            <img src={page.image} alt="Book Cover" className="cover-illustration" />
+                                            <div className="cover-overlay">
+                                                <h1 className="cover-title">{story.title}</h1>
+                                                <p className="cover-subtitle">Starring {story.childName}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            }
+
+                            // Regular page rendering
                             const hue1 = (index * 40 + 200) % 360;
                             const hue2 = (hue1 + 80) % 360;
                             const icon = themeIcons[index % themeIcons.length];
@@ -185,6 +205,6 @@ export default function StoryViewer({ story, onClose, onStorySaved }) {
                     </div>
                 </div>
             </div>
-        </div>
+        </div >
     );
 }

@@ -72,13 +72,36 @@ export default function StoryCreator({ onClose, onStoryGenerated }) {
             const storyContent = await generateStoryContent(childName, storyPrompt, pageCount, apiKey);
             incrementProgress();
 
-            // Step 3: Generate illustrations with consistent character, outfit, and locations
+
+            // Step 3: Generate cover illustration
+            setLoadingText('Designing your magical book cover...');
+            const coverImageUrl = await generatePageImage(
+                `Create a stunning storybook cover illustration for "${storyContent.title}". The cover should show ${childName} as the main character in an exciting pose or scene that captures the essence of the story. Style: vibrant, child-friendly, professional children's book cover art. Include magical elements, wonder, and adventure. Make it eye-catching and inviting.`,
+                apiKey,
+                0, // Page 0 = cover
+                photoPreview,
+                childName,
+                characterDescription,
+                {
+                    characterOutfit: storyContent.characterOutfit,
+                    locations: storyContent.locations,
+                    currentLocation: storyContent.locations?.[0] || 'magical setting'
+                }
+            );
+            incrementProgress();
+
+            // Step 4: Generate illustrations for story pages
             setLoadingText('Creating beautiful illustrations...');
-            const pages = [];
+            const pages = [{
+                pageNumber: 0,
+                text: '', // Cover has no text, just title display
+                image: coverImageUrl,
+                isCover: true
+            }];
 
             for (let i = 0; i < storyContent.pages.length; i++) {
                 const pageData = storyContent.pages[i];
-                setProgress(Math.round(((2 + i) / totalSteps) * 100));
+                setProgress(Math.round(((3 + i) / totalSteps) * 100));
                 setLoadingText(`Illustrating page ${i + 1} of ${storyContent.pages.length}...`);
 
                 // Build story context with outfit and current location
@@ -113,7 +136,8 @@ export default function StoryCreator({ onClose, onStoryGenerated }) {
 
             const story = {
                 id: Date.now().toString(),
-                title: `${childName}'s ${storyContent.title}`,
+                title: storyContent.title,
+                childName: childName,
                 pages: pages,
                 createdAt: new Date().toISOString(),
                 saved: false
