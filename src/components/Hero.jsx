@@ -216,37 +216,29 @@ export default function Hero({ onCreateStory }) {
                 <h2 className="section-title">Stories Our Customers Love</h2>
                 <p className="section-subtitle">See the magic we create every day</p>
 
-                <div className="gallery-featured">
-                    <div className="featured-story">
-                        <img
-                            src="/assets/hero-child-reading.jpg"
-                            alt="Happy child reading their personalized storybook"
-                            className="featured-story-image"
-                        />
-                        <div className="featured-story-badge">
-                            <span className="badge-star">⭐</span>
-                            <span>Real Customer Story</span>
+                <div className="gallery-grid">
+                    <div className="gallery-item">
+                        <div className="gallery-placeholder" style={{ background: 'linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%)' }}>
+                            <span className="gallery-icon">👸</span>
+                            <span className="gallery-label">Princess Adventure</span>
                         </div>
                     </div>
-
-                    <div className="gallery-grid-small">
-                        <div className="gallery-item-small">
-                            <div className="gallery-placeholder" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
-                                <span className="gallery-icon">🚀</span>
-                                <span className="gallery-label">Space Explorer</span>
-                            </div>
+                    <div className="gallery-item">
+                        <div className="gallery-placeholder" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
+                            <span className="gallery-icon">🚀</span>
+                            <span className="gallery-label">Space Explorer</span>
                         </div>
-                        <div className="gallery-item-small">
-                            <div className="gallery-placeholder" style={{ background: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)' }}>
-                                <span className="gallery-icon">🦕</span>
-                                <span className="gallery-label">Dinosaur World</span>
-                            </div>
+                    </div>
+                    <div className="gallery-item">
+                        <div className="gallery-placeholder" style={{ background: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)' }}>
+                            <span className="gallery-icon">🦕</span>
+                            <span className="gallery-label">Dinosaur World</span>
                         </div>
-                        <div className="gallery-item-small">
-                            <div className="gallery-placeholder" style={{ background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' }}>
-                                <span className="gallery-icon">🧜‍♀️</span>
-                                <span className="gallery-label">Ocean Adventure</span>
-                            </div>
+                    </div>
+                    <div className="gallery-item">
+                        <div className="gallery-placeholder" style={{ background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' }}>
+                            <span className="gallery-icon">🧜‍♀️</span>
+                            <span className="gallery-label">Ocean Adventure</span>
                         </div>
                     </div>
                 </div>
