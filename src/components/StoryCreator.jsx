@@ -31,9 +31,13 @@ export default function StoryCreator({ onClose, onStoryGenerated }) {
     };
 
     const handleGenerate = async () => {
+        // In production, serverless function handles API key
+        // Only check for key in development mode
+        const isProduction = import.meta.env.PROD;
         const apiKey = getApiKey();
-        if (!apiKey) {
-            alert('Please set your OpenRouter API key in settings');
+
+        if (!isProduction && !apiKey) {
+            alert('Please set your OpenRouter API key in settings (only needed for local development)');
             onClose();
             return;
         }
