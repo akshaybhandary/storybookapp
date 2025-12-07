@@ -1,34 +1,114 @@
+/* ================================= */
+/* Brand Design System V2.0         */
+/* Sophisticated, Warm, Story-focused */
+/* ================================= */
+
 :root {
-    /* Color Palette */
-    --primary: hsl(280, 85%, 60%);
-    --primary-light: hsl(280, 85%, 70%);
-    --primary-dark: hsl(280, 85%, 50%);
-    --secondary: hsl(200, 95%, 55%);
-    --secondary-light: hsl(200, 95%, 65%);
-    --accent: hsl(45, 100%, 60%);
-    --accent-alt: hsl(320, 85%, 65%);
+    /* PRIMARY BRAND COLORS - Warm & Inviting */
+    --brand-primary: #E67E50;
+    /* Sunset Coral - warmth, creativity, joy */
+    --brand-primary-light: #F29D6F;
+    --brand-primary-dark: #D96A3D;
 
-    /* Backgrounds */
-    --bg-dark: hsl(250, 30%, 8%);
-    --bg-card: hsl(250, 25%, 12%);
-    --bg-elevated: hsl(250, 20%, 16%);
+    /* SECONDARY COLORS - Storytelling Blues */
+    --brand-secondary: #4A7C9A;
+    /* Story Blue - trust, calm, imagination */
+    --brand-secondary-light: #6B9FBF;
+    --brand-secondary-dark: #3A6179;
 
-    /* Text */
-    --text-primary: hsl(0, 0%, 98%);
-    --text-secondary: hsl(0, 0%, 75%);
-    --text-muted: hsl(0, 0%, 55%);
+    /* ACCENT COLORS - Magical Touch */
+    --brand-accent-magic: #9B6FDB;
+    /* Fairy Tale Purple */
+    --brand-accent-sunshine: #FFB84D;
+    /* Golden Hour */
+    --brand-accent-forest: #5FB894;
+    /* Adventure Green */
 
-    /* Effects */
-    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
-    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
-    --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
-    --shadow-glow: 0 0 20px rgba(147, 51, 234, 0.3);
+    /* NEUTRAL PALETTE - Clean & Professional */
+    --neutral-50: #FAFAF9;
+    --neutral-100: #F5F5F4;
+    --neutral-200: #E7E5E4;
+    --neutral-300: #D6D3D1;
+    --neutral-400: #A8A29E;
+    --neutral-500: #78716C;
+    --neutral-600: #57534E;
+    --neutral-700: #44403C;
+    --neutral-800: #292524;
+    --neutral-900: #1C1917;
 
-    /* Border Radius */
-    --radius-sm: 8px;
-    --radius-md: 12px;
-    --radius-lg: 16px;
-    --radius-xl: 24px;
+    /* SEMANTIC COLORS */
+    --color-success: #10B981;
+    --color-warning: #F59E0B;
+    --color-error: #EF4444;
+    --color-info: #3B82F6;
+
+    /* APPLICATION COLORS (Referencing brand palette) */
+    --primary: var(--brand-primary);
+    --primary-light: var(--brand-primary-light);
+    --primary-dark: var(--brand-primary-dark);
+
+    --secondary: var(--brand-secondary);
+    --secondary-light: var(--brand-secondary-light);
+    --secondary-dark: var(--brand-secondary-dark);
+
+    --accent: var(--brand-accent-magic);
+    --accent-alt: var(--brand-accent-sunshine);
+
+    /* BACKGROUNDS */
+    --bg-body: var(--neutral-900);
+    --bg-card: rgba(255, 255, 255, 0.05);
+    --bg-elevated: rgba(255, 255, 255, 0.08);
+    --bg-gradient-hero: linear-gradient(135deg,
+            hsl(211, 36%, 31%) 0%,
+            hsl(266, 45%, 35%) 50%,
+            hsl(16, 68%, 50%) 100%);
+
+    /* TEXT COLORS */
+    --text-primary: var(--neutral-50);
+    --text-secondary: var(--neutral-300);
+    --text-muted: var(--neutral-400);
+    --text-inverse: var(--neutral-900);
+
+    /* BORDERS & LINES */
+    --border-subtle: rgba(255, 255, 255, 0.1);
+    --border-medium: rgba(255, 255, 255, 0.2);
+    --border-strong: rgba(255, 255, 255, 0.3);
+
+    /* SHADOWS - Enhanced depth */
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.3);
+    --shadow-glow: 0 0 20px rgba(230, 126, 80, 0.3);
+
+    /* SPACING SYSTEM (8px base) */
+    --space-xs: 0.5rem;
+    /* 8px */
+    --space-sm: 0.75rem;
+    /* 12px */
+    --space-md: 1rem;
+    /* 16px */
+    --space-lg: 1.5rem;
+    /* 24px */
+    --space-xl: 2rem;
+    /* 32px */
+    --space-2xl: 3rem;
+    /* 48px */
+    --space-3xl: 4rem;
+    /* 64px */
+
+    /* BORDER RADIUS */
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --radius-xl: 16px;
+    --radius-2xl: 24px;
+    --radius-full: 9999px;
+
+    /* TYPOGRAPHY SCALE */
+    --font-primary: 'Fredoka', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-secondary: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-monospace: 'Fira Code', monospace;
 
     /* Transitions */
     --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
@@ -2180,12 +2260,14 @@ body {
         font-size: 1.8rem;
     }
 }
+
 /* ================================= */
 /* Full Page Layouts                */
 /* ================================= */
 
 .page-container {
-    padding-top: 80px; /* Space for navbar */
+    padding-top: 80px;
+    /* Space for navbar */
     min-height: 100vh;
     width: 100%;
     background: radial-gradient(circle at top right, #2d1b4e, #1a1a2e);
@@ -2243,12 +2325,12 @@ body {
         flex-direction: column;
         gap: 1rem;
     }
-    
+
     .back-link {
         position: static;
         margin-right: auto;
     }
-    
+
     .story-creator {
         padding: 1.5rem;
     }
@@ -2315,8 +2397,17 @@ body {
 }
 
 @keyframes sparkle {
-    0%, 100% { transform: scale(1); opacity: 1; }
-    50% { transform: scale(1.2); opacity: 0.8; }
+
+    0%,
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+
+    50% {
+        transform: scale(1.2);
+        opacity: 0.8;
+    }
 }
 
 .hero-image-caption h3 {
@@ -2339,15 +2430,35 @@ body {
     .hero-image-section {
         margin-top: 3rem;
     }
-    
+
     .hero-image-caption h3 {
         font-size: 1.4rem;
     }
-    
+
     .hero-image-badge {
         top: 1rem;
         right: 1rem;
         padding: 0.5rem 1rem;
         font-size: 0.85rem;
     }
+}
+/* Brand Logo Styling */
+.brand-logo {
+    width: 40px;
+    height: 40px;
+    margin-right: var(--space-sm);
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+    transition: transform var(--transition-base);
+}
+
+.brand-logo:hover {
+    transform: scale(1.05) rotate(2deg);
+}
+
+.nav-brand h1 {
+    font-family: var(--font-primary);
+    background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-accent-sunshine) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }

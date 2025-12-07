@@ -2,7 +2,7 @@ export default function Navbar({ onCreateStory, onOpenLibrary, onOpenSettings, l
     return (
         <nav className="navbar">
             <div className="nav-brand">
-                <span className="magic-wand">✨</span>
+                <img src="/logo.svg" alt="StoryBook Magic" className="brand-logo" />
                 <h1>StoryBook Magic</h1>
             </div>
             <div className="nav-buttons">

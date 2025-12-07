@@ -1,0 +1,22 @@
+<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Open Book -->
+  <path d="M6 12C6 10.8954 6.89543 10 8 10H22C23.1046 10 24 10.8954 24 12V36C24 37.1046 23.1046 38 22 38H8C6.89543 38 6 37.1046 6 36V12Z" fill="#E67E50"/>
+  <path d="M24 12C24 10.8954 24.8954 10 26 10H40C41.1046 10 42 10.8954 42 12V36C42 37.1046 41.1046 38 40 38H26C24.8954 38 24 37.1046 24 36V12Z" fill="#4A7C9A"/>
+  
+  <!-- Book Spine -->
+  <rect x="23" y="10" width="2" height="28" fill="#3A6179"/>
+  
+  <!-- Pages Detail -->
+  <path d="M10 14H20M10 18H20M10 22H20M10 26H20" stroke="white" stroke-width="1.5" stroke-linecap="round" opacity="0.6"/>
+  <path d="M28 14H38M28 18H38M28 22H38M28 26H38" stroke="white" stroke-width="1.5" stroke-linecap="round" opacity="0.6"/>
+  
+  <!-- Magical Sparkles -->
+  <circle cx="12" cy="8" r="2" fill="#9B6FDB"/>
+  <circle cx="36" cy="8" r="1.5" fill="#FFB84D"/>
+  <circle cx="8" cy="40" r="1.5" fill="#9B6FDB"/>
+  <circle cx="40" cy="40" r="2" fill="#FFB84D"/>
+  
+  <!-- Star Sparkles -->
+  <path d="M18 6L18.5 7.5L20 8L18.5 8.5L18 10L17.5 8.5L16 8L17.5 7.5L18 6Z" fill="#9B6FDB"/>
+  <path d="M32 42L32.5 43.5L34 44L32.5 44.5L32 46L31.5 44.5L30 44L31.5 43.5L32 42Z" fill="#FFB84D"/>
+</svg>
