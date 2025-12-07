@@ -101,6 +101,25 @@ export default function Hero({ onCreateStory }) {
                 </div>
             </div>
 
+            {/* Hero Image Showcase */}
+            <div className="hero-image-section">
+                <div className="hero-image-container">
+                    <img
+                        src="/assets/hero-child-reading.jpg"
+                        alt="Child reading personalized storybook"
+                        className="hero-showcase-image"
+                    />
+                    <div className="hero-image-badge">
+                        <span className="badge-sparkle">✨</span>
+                        <span>See the magic in their eyes</span>
+                    </div>
+                </div>
+                <div className="hero-image-caption">
+                    <h3>Watch their eyes light up as they become the hero of their own adventure!</h3>
+                    <p>Every child deserves to see themselves in their favorite story</p>
+                </div>
+            </div>
+
             {/* How It Works Section */}
             <section id="how-it-works" className="how-it-works">
                 <h2 className="section-title">Create Your Book in 3 Easy Steps</h2>
@@ -199,10 +218,11 @@ export default function Hero({ onCreateStory }) {
 
                 <div className="gallery-grid">
                     <div className="gallery-item">
-                        <div className="gallery-placeholder" style={{ background: 'linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%)' }}>
-                            <span className="gallery-icon">👸</span>
-                            <span className="gallery-label">Princess Adventure</span>
-                        </div>
+                        <img
+                            src="/assets/hero-child-reading.jpg"
+                            alt="Child enjoying personalized storybook"
+                            style={{ width: '100%', height: '250px', objectFit: 'cover', borderRadius: 'var(--radius-lg)' }}
+                        />
                     </div>
                     <div className="gallery-item">
                         <div className="gallery-placeholder" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
