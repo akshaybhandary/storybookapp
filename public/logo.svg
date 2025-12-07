@@ -14,17 +14,4 @@
   <circle cx="35" cy="12" r="1.5" fill="#E8C547"/>
   <circle cx="13" cy="36" r="1.5" fill="#E8C547"/>
   <circle cx="35" cy="36" r="1.5" fill="#E8C547"/>
-  
-  <!-- Magical Sparkle -->
-  <path d="M40 8L40.8 10.2L43 11L40.8 11.8L40 14L39.2 11.8L37 11L39.2 10.2L40 8Z" fill="#E8C547" filter="url(#glow)"/>
-  
-  <defs>
-    <filter id="glow">
-      <feGaussianBlur stdDeviation="1" result="coloredBlur"/>
-      <feMerge>
-        <feMergeNode in="coloredBlur"/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
-    </filter>
-  </defs>
 </svg>
