@@ -12,12 +12,18 @@ export default function StoryViewer({ story, onClose, onStorySaved }) {
     }, [story.id]);
 
     const handleSave = () => {
-        if (saveStory(story)) {
+        const result = saveStory(story);
+
+        if (result.success) {
             setIsSaved(true);
             onStorySaved();
             alert('Story saved to library!');
-        } else {
+        } else if (result.alreadySaved) {
             alert('Story already saved!');
+        } else if (result.error === 'QUOTA_EXCEEDED') {
+            alert(`❌ Storage Full!\n\n${result.message}\n\nTip: Delete old stories from your library to make space.`);
+        } else {
+            alert(`Failed to save story: ${result.message}`);
         }
     };
 

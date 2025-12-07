@@ -18,17 +18,42 @@ export function getSavedStories() {
 }
 
 /**
- * Save stories to localStorage
+ * Save stories to localStorage with quota handling
  */
 export function saveStories(stories) {
     try {
-        localStorage.setItem('saved_stories', JSON.stringify(stories));
-        logger.storageOperation('SAVE_STORIES', true, { count: stories.length });
-        return true;
+        const dataStr = JSON.stringify(stories);
+        const dataSizeKB = Math.round(dataStr.length / 1024);
+
+        logger.debug('STORAGE', 'Attempting to save stories', {
+            count: stories.length,
+            sizeKB: dataSizeKB
+        });
+
+        localStorage.setItem('saved_stories', dataStr);
+        logger.storageOperation('SAVE_STORIES', true, {
+            count: stories.length,
+            sizeKB: dataSizeKB
+        });
+        return { success: true, sizeKB: dataSizeKB };
     } catch (error) {
         logger.error('STORAGE', 'Failed to save stories', error, { count: stories.length });
         logger.storageOperation('SAVE_STORIES', false, { error: error.message });
-        return false;
+
+        // Check if quota exceeded
+        if (error.name === 'QuotaExceededError' || error.code === 22) {
+            return {
+                success: false,
+                error: 'QUOTA_EXCEEDED',
+                message: 'Storage is full. Please delete some old stories to save new ones.'
+            };
+        }
+
+        return {
+            success: false,
+            error: 'UNKNOWN',
+            message: error.message
+        };
     }
 }
 
@@ -42,7 +67,7 @@ export function saveStory(story) {
     const existingIndex = stories.findIndex(s => s.id === story.id);
     if (existingIndex !== -1) {
         logger.info('STORAGE', 'Story already saved', { storyId: story.id, title: story.title });
-        return false;
+        return { success: false, alreadySaved: true };
     }
 
     // Add timestamp
@@ -51,16 +76,17 @@ export function saveStory(story) {
     // Add to beginning of array
     stories.unshift(story);
 
-    const success = saveStories(stories);
-    if (success) {
+    const result = saveStories(stories);
+    if (result.success) {
         logger.info('STORAGE', 'Story saved successfully', {
             storyId: story.id,
             title: story.title,
-            pageCount: story.pages?.length
+            pageCount: story.pages?.length,
+            sizeKB: result.sizeKB
         });
     }
 
-    return success;
+    return result;
 }
 
 /**
