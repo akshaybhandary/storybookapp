@@ -53,7 +53,7 @@ export default function StoryCreator({ onClose, onStoryGenerated }) {
         setProgress(5);
 
         try {
-            const pageCount = length === 'short' ? 5 : length === 'medium' ? 8 : 12;
+            const pageCount = length === 'short' ? 5 : 10;
             const totalSteps = pageCount + 2; // Analysis + Story + Pages
             let currentStep = 0;
 
@@ -232,7 +232,7 @@ export default function StoryCreator({ onClose, onStoryGenerated }) {
                             <div className="form-group">
                                 <label>Story Length</label>
                                 <div className="radio-group">
-                                    {['short', 'medium', 'long'].map(len => (
+                                    {['short', 'long'].map(len => (
                                         <label key={len} className="radio-option">
                                             <input
                                                 type="radio"
@@ -243,7 +243,7 @@ export default function StoryCreator({ onClose, onStoryGenerated }) {
                                             />
                                             <span className="radio-label">
                                                 <strong>{len.charAt(0).toUpperCase() + len.slice(1)}</strong>
-                                                <small>{len === 'short' ? '4-6 pages' : len === 'medium' ? '8-10 pages' : '12-15 pages'}</small>
+                                                <small>{len === 'short' ? '5 pages' : '10 pages'}</small>
                                             </span>
                                         </label>
                                     ))}
