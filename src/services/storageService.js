@@ -90,11 +90,31 @@ export function isStorySaved(storyId) {
 
 /**
  * Get/Set API Key
+ * In development: Check localStorage first, then .env file
+ * In production: Serverless function handles API key, return null
  */
 export function getApiKey() {
-    const key = localStorage.getItem('openrouter_api_key');
-    logger.debug('STORAGE', 'API key accessed', { hasKey: !!key });
-    return key;
+    // In production, serverless function handles API key
+    if (import.meta.env.PROD) {
+        return null;  // Not needed - serverless function has it
+    }
+
+    // Development: Check localStorage first
+    const localKey = localStorage.getItem('openrouter_api_key');
+    if (localKey) {
+        logger.debug('STORAGE', 'API key from localStorage', { hasKey: true });
+        return localKey;
+    }
+
+    // Then check .env file (Vite loads VITE_ prefixed vars)
+    const envKey = import.meta.env.VITE_OPENROUTER_API_KEY;
+    if (envKey) {
+        logger.debug('STORAGE', 'API key from .env file', { hasKey: true });
+        return envKey;
+    }
+
+    logger.debug('STORAGE', 'No API key found');
+    return null;
 }
 
 export function setApiKey(apiKey) {
