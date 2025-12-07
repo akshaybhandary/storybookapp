@@ -268,7 +268,7 @@ body {
     text-align: center;
     max-width: 900px;
     padding: 2rem;
-    margin-top: 2rem;
+    margin-top: 6rem;
 }
 
 .hero-title {
@@ -2476,6 +2476,7 @@ body {
     -webkit-text-fill-color: transparent;
     background-clip: text;
 }
+
 /* Featured Gallery Layout */
 .gallery-featured {
     max-width: 1200px;
@@ -2526,8 +2527,15 @@ body {
 }
 
 @keyframes pulse {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.1); }
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.1);
+    }
 }
 
 .gallery-grid-small {
@@ -2552,11 +2560,11 @@ body {
     .gallery-featured {
         flex-direction: column;
     }
-    
+
     .featured-story {
         min-width: 100%;
     }
-    
+
     .gallery-grid-small {
         flex-direction: row;
         width: 100%;
