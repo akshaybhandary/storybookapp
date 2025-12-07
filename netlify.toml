@@ -3,13 +3,8 @@
   publish = "dist"
 
 [functions]
-  # Increase timeout to maximum (26 seconds on Pro, 10 on Free)
-  # You need Pro plan for 26 seconds
+  # Increase timeout to maximum (26 seconds on Pro plan)
   node_bundler = "esbuild"
-
-[[functions]]
-  path = "/.netlify/functions/*"
-  included_files = ["netlify/functions/**"]
   
 [functions.openrouter]
   # Maximum timeout - requires Pro plan
