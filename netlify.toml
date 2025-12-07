@@ -1,18 +1,16 @@
 [build]
   command = "npm run build"
   publish = "dist"
-  functions = "netlify/functions"
 
-[build.environment]
-  NODE_VERSION = "18"
+[functions]
+  # Increase timeout to maximum (26 seconds on Pro, 10 on Free)
+  # You need Pro plan for 26 seconds
+  node_bundler = "esbuild"
 
-[[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/:splat"
-  status = 200
-
-[[headers]]
-  for = "/*"
-  [headers.values]
-    X-Frame-Options = "DENY"
-    X-Content-Type-Options = "nosniff"
+[[functions]]
+  path = "/.netlify/functions/*"
+  included_files = ["netlify/functions/**"]
+  
+[functions.openrouter]
+  # Maximum timeout - requires Pro plan
+  timeout = 26
