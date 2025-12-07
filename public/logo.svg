@@ -1,32 +1,36 @@
 <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- Book Base -->
-  <path d="M10 12C10 10.3431 11.3431 9 13 9H35C36.6569 9 38 10.3431 38 12V36C38 37.6569 36.6569 39 35 39H13C11.3431 39 10 37.6569 10 36V12Z" fill="#1B1F3B"/>
+  <!-- Open Book - Left Page -->
+  <path d="M6 14C6 11.7909 7.79086 10 10 10H22C23.1046 10 24 10.8954 24 12V36C24 37.1046 23.1046 38 22 38H10C7.79086 38 6 36.2091 6 34V14Z" fill="url(#leftPage)"/>
   
-  <!-- Golden Cover with Gradient -->
-  <rect x="11" y="10" width="26" height="28" rx="2" fill="url(#coverGradient)"/>
+  <!-- Open Book - Right Page -->
+  <path d="M24 12C24 10.8954 24.8954 10 26 10H38C40.2091 10 42 11.7909 42 14V34C42 36.2091 40.2091 38 38 38H26C24.8954 38 24 37.1046 24 36V12Z" fill="url(#rightPage)"/>
   
-  <!-- Ornate Border -->
-  <rect x="13" y="12" width="22" height="24" rx="1" fill="none" stroke="#E8C547" stroke-width="0.8" opacity="0.6"/>
-  <rect x="14.5" y="13.5" width="19" height="21" rx="0.5" fill="none" stroke="#D4AF37" stroke-width="0.5" opacity="0.4"/>
+  <!-- Center Spine -->
+  <rect x="23" y="10" width="2" height="28" fill="#B8941F"/>
   
-  <!-- Cover Star/Ornament -->
-  <circle cx="24" cy="20" r="3" fill="none" stroke="#E8C547" stroke-width="0.8"/>
-  <path d="M24 18L24.4 19.6L26 20L24.4 20.4L24 22L23.6 20.4L22 20L23.6 19.6L24 18Z" fill="#E8C547"/>
+  <!-- Page Lines - Left -->
+  <line x1="10" y1="16" x2="20" y2="16" stroke="#E8C547" stroke-width="0.8" opacity="0.6"/>
+  <line x1="10" y1="20" x2="20" y2="20" stroke="#E8C547" stroke-width="0.8" opacity="0.5"/>
+  <line x1="10" y1="24" x2="18" y2="24" stroke="#E8C547" stroke-width="0.8" opacity="0.5"/>
+  <line x1="10" y1="28" x2="20" y2="28" stroke="#E8C547" stroke-width="0.8" opacity="0.4"/>
   
-  <!-- Title Lines (representing text) -->
-  <line x1="17" y1="27" x2="31" y2="27" stroke="#D4AF37" stroke-width="1" stroke-linecap="round" opacity="0.7"/>
-  <line x1="19" y1="30" x2="29" y2="30" stroke="#D4AF37" stroke-width="0.8" stroke-linecap="round" opacity="0.6"/>
+  <!-- Page Lines - Right -->
+  <line x1="28" y1="16" x2="38" y2="16" stroke="#E8C547" stroke-width="0.8" opacity="0.6"/>
+  <line x1="28" y1="20" x2="38" y2="20" stroke="#E8C547" stroke-width="0.8" opacity="0.5"/>
+  <line x1="30" y1="24" x2="38" y2="24" stroke="#E8C547" stroke-width="0.8" opacity="0.5"/>
+  <line x1="28" y1="28" x2="38" y2="28" stroke="#E8C547" stroke-width="0.8" opacity="0.4"/>
   
-  <!-- Book Spine -->
-  <rect x="10" y="10" width="2" height="28" fill="#B8941F"/>
-  
-  <!-- Page Edges (side) -->
-  <rect x="37" y="11" width="1" height="27" fill="#F5EDD6" opacity="0.8"/>
+  <!-- Decorative Star -->
+  <path d="M24 7L24.5 8.5L26 9L24.5 9.5L24 11L23.5 9.5L22 9L23.5 8.5L24 7Z" fill="#E8C547"/>
   
   <defs>
-    <linearGradient id="coverGradient" x1="24" y1="10" x2="24" y2="38" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#D4AF37"/>
-      <stop offset="100%" stop-color="#B8941F"/>
+    <linearGradient id="leftPage" x1="6" y1="24" x2="24" y2="24" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#C9A962"/>
+      <stop offset="100%" stop-color="#D4AF37"/>
+    </linearGradient>
+    <linearGradient id="rightPage" x1="42" y1="24" x2="24" y2="24" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#C9A962"/>
+      <stop offset="100%" stop-color="#D4AF37"/>
     </linearGradient>
   </defs>
 </svg>
