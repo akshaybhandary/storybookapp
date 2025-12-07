@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { saveStory, isStorySaved } from '../services/storageService';
+import { generateEPUB } from '../utils/epubGenerator';
 
 export default function StoryViewer({ story, onClose, onStorySaved }) {
     const [currentPage, setCurrentPage] = useState(0);
     const [isSaved, setIsSaved] = useState(false);
+    const [isGeneratingEbook, setIsGeneratingEbook] = useState(false);
 
     useEffect(() => {
         setIsSaved(isStorySaved(story.id));
@@ -21,6 +23,19 @@ export default function StoryViewer({ story, onClose, onStorySaved }) {
 
     const handlePrint = () => {
         window.print();
+    };
+
+    const handleDownloadEbook = async () => {
+        setIsGeneratingEbook(true);
+        try {
+            await generateEPUB(story);
+            // Success! File will auto-download
+        } catch (error) {
+            console.error('Failed to generate eBook:', error);
+            alert('Failed to create eBook. Please try again.');
+        } finally {
+            setIsGeneratingEbook(false);
+        }
     };
 
     const themeIcons = ['🌟', '✨', '🎨', '🦄', '🌈', '🎭', '🎪', '🎡', '🎢', '🎠'];
@@ -59,6 +74,17 @@ export default function StoryViewer({ story, onClose, onStorySaved }) {
                                     <path d="M6 14h12v8H6z"></path>
                                 </svg>
                                 Print
+                            </button>
+                            <button
+                                className="action-btn ebook-btn"
+                                onClick={handleDownloadEbook}
+                                disabled={isGeneratingEbook}
+                            >
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                                </svg>
+                                {isGeneratingEbook ? 'Generating...' : 'Download eBook'}
                             </button>
                         </div>
                     </div>
