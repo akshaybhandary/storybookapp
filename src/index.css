@@ -105,10 +105,8 @@
     --radius-2xl: 24px;
     --radius-full: 9999px;
 
-    /* TYPOGRAPHY SCALE */
-    --font-primary: 'Fredoka', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    --font-secondary: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    --font-monospace: 'Fira Code', monospace;
+    /* TYPOGRAPHY */
+    --font-primary: 'Fredoka', sans-serif;
 
     /* Transitions */
     --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
@@ -142,30 +140,45 @@ body {
     background: linear-gradient(135deg, hsl(250, 40%, 10%) 0%, hsl(280, 40%, 15%) 100%);
 }
 
-/* Animated Stars Background */
+/* Smooth Animated Starfield Background */
 .stars,
 .stars2,
 .stars3 {
     position: absolute;
     top: 0;
     left: 0;
-    width: 100%;
-    height: 100%;
+    width: 1px;
+    height: 1px;
     pointer-events: none;
 }
 
 .stars {
-    background: transparent url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="2" height="2"><circle cx="1" cy="1" r="1" fill="white" opacity="0.3"/></svg>') repeat;
+    box-shadow:
+        100px 200px white, 300px 100px white, 500px 300px white,
+        700px 150px white, 900px 250px white, 1100px 180px white,
+        200px 400px white, 400px 500px white, 600px 450px white,
+        800px 600px white, 1000px 550px white, 1200px 500px white,
+        150px 700px white, 350px 800px white, 550px 750px white,
+        750px 850px white, 950px 900px white, 1150px 820px white;
     animation: animateStars 100s linear infinite;
 }
 
 .stars2 {
-    background: transparent url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="3" height="3"><circle cx="1.5" cy="1.5" r="1" fill="white" opacity="0.2"/></svg>') repeat;
+    box-shadow:
+        200px 150px rgba(255, 255, 255, 0.7), 400px 250px rgba(255, 255, 255, 0.7),
+        600px 200px rgba(255, 255, 255, 0.7), 800px 350px rgba(255, 255, 255, 0.7),
+        300px 450px rgba(255, 255, 255, 0.7), 500px 550px rgba(255, 255, 255, 0.7),
+        700px 650px rgba(255, 255, 255, 0.7), 900px 750px rgba(255, 255, 255, 0.7),
+        250px 850px rgba(255, 255, 255, 0.7), 450px 950px rgba(255, 255, 255, 0.7);
     animation: animateStars 150s linear infinite;
 }
 
 .stars3 {
-    background: transparent url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="4" height="4"><circle cx="2" cy="2" r="1.5" fill="white" opacity="0.1"/></svg>') repeat;
+    box-shadow:
+        150px 300px rgba(255, 255, 255, 0.5), 450px 200px rgba(255, 255, 255, 0.5),
+        650px 400px rgba(255, 255, 255, 0.5), 850px 300px rgba(255, 255, 255, 0.5),
+        350px 600px rgba(255, 255, 255, 0.5), 550px 700px rgba(255, 255, 255, 0.5),
+        750px 800px rgba(255, 255, 255, 0.5), 950px 900px rgba(255, 255, 255, 0.5);
     animation: animateStars 200s linear infinite;
 }
 
@@ -2442,6 +2455,7 @@ body {
         font-size: 0.85rem;
     }
 }
+
 /* Brand Logo Styling */
 .brand-logo {
     width: 40px;
