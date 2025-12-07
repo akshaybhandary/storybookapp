@@ -147,25 +147,34 @@ export default function StoryCreator({ onClose, onStoryGenerated }) {
 
         } catch (error) {
             console.error('Error generating story:', error);
+            console.error('Full error details:', {
+                message: error.message,
+                stack: error.stack,
+                response: error.response
+            });
 
-            let errorTitle = 'Story Generation Paused';
-            let errorMessage = 'We encountered a small hiccup. Please try again.';
+            let errorTitle = 'Story Generation Error';
+            let errorMessage = `${error.message}\n\nPlease check the browser console (F12) for more details, or contact support with this error.`;
 
             if (error.message.includes('Image generation failed')) {
                 errorTitle = 'Image Generation Issue';
-                errorMessage = 'We couldn\'t generate the illustrations right now. This is usually temporary. Please try again in a moment.';
+                errorMessage = `Image generation failed: ${error.message}\n\nThis might be due to API rate limits or temporary service issues. Please try again in a moment.`;
             } else if (error.message.includes('API key')) {
-                errorTitle = 'Setup Required';
-                errorMessage = 'Please check your settings to ensure everything is configured correctly.';
+                errorTitle = 'API Configuration Error';
+                errorMessage = `API key issue: ${error.message}\n\nPlease check Netlify environment variables.`;
             } else if (error.message.includes('Story generation failed')) {
-                errorTitle = 'Story Creation Issue';
-                errorMessage = 'We had trouble writing the story. Please try a slightly different prompt.';
+                errorTitle = 'Story Generation Failed';
+                errorMessage = `Story creation error: ${error.message}\n\nPlease try a different theme or simplify your request.`;
+            } else if (error.message.includes('rate limit') || error.message.includes('429')) {
+                errorTitle = 'Rate Limit Reached';
+                errorMessage = 'Too many requests. Please wait a moment before trying again.';
+            } else if (error.message.includes('credits') || error.message.includes('402')) {
+                errorTitle = 'Insufficient Credits';
+                errorMessage = 'Your OpenRouter account needs more credits. Please add credits at openrouter.ai';
             }
 
-            // Show friendly custom alert/UI instead of browser alert
-            // For now, we'll use a cleaner alert, but ideally this would be an error state in the UI
-            alert(`${errorTitle}\n\n${errorMessage}`);
-            setStep(2);
+            setError({ title: errorTitle, message: errorMessage });
+            setStep(4);
         }
     };
 
