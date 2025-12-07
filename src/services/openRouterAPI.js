@@ -38,42 +38,73 @@ export async function generateStoryContent(childName, theme, pageCount, apiKey) 
     logger.storyGenerationStart(childName, theme, pageCount);
     logger.debug('STORY-GEN', 'Building prompt', { childName, themeLength: theme.length, pageCount });
 
-    const prompt = `Create a children's storybook with exactly ${pageCount} pages.
+    const prompt = `You are an award-winning children's book author creating a premium storybook for a child named ${childName}.
 
-The story should be about: ${theme}
+STORY DETAILS:
+- Theme: ${theme}
+- Pages: Exactly ${pageCount} pages
+- Target age: 4-8 years old
 
-The main character's name is: ${childName}
+STORYTELLING EXCELLENCE REQUIREMENTS:
 
-IMPORTANT CONSISTENCY RULES:
-1. OUTFIT: ${childName} must wear the SAME outfit throughout the entire story. Define it in the first page and keep it consistent.
-2. LOCATIONS: If a location appears multiple times (like a bedroom, forest, etc.), it should look the SAME each time - same colors, same furniture, same style.
-3. STYLE: All illustrations should have a consistent art style and color palette throughout the book.
+1. NARRATIVE QUALITY:
+   - Use rich, descriptive language appropriate for children
+   - Include sensory details (sights, sounds, feelings)
+   - Create a clear story arc: Beginning (introduce character & problem), Middle (adventure/challenge), End (resolution & growth)
+   - Each page should end with a hook that makes readers want to turn the page
+   - Use varied sentence structures - mix short, punchy sentences with longer, flowing ones
+   - Include dialogue to bring characters to life
+   - Show emotions through actions and expressions, not just telling
 
-Please create a JSON response with the following structure:
+2. CHARACTER DEVELOPMENT:
+   - ${childName} should be brave, curious, kind, and relatable
+   - Give ${childName} a clear personality trait or strength
+   - Show ${childName} learning or growing through the adventure
+   - Include one supporting character who helps or challenges ${childName}
+
+3. LITERARY DEVICES:
+   - Use alliteration and rhyme occasionally for memorability
+   - Include onomatopoeia for sound effects (whoosh, splash, rustle)
+   - Create vivid imagery with metaphors children understand
+   - Add emotional depth - moments of wonder, excitement, warmth
+
+4. PACING & STRUCTURE:
+   - Pages 1-2: Set the scene, introduce ${childName} and their world
+   - Pages 3-${Math.floor(pageCount * 0.7)}: The adventure unfolds, challenges arise
+   - Final pages: Climax, resolution, heartwarming ending with a gentle lesson
+
+5. VISUAL CONSISTENCY (CRITICAL):
+   - OUTFIT: ${childName} wears ONE specific outfit throughout. Define it clearly on page 1.
+   - LOCATIONS: Each location has consistent colors, furniture, and style whenever it appears
+   - Example outfit: "a cozy blue hoodie with a friendly dinosaur, green cargo pants, red sneakers"
+   - Example location: "A sunlit bedroom with yellow walls, a wooden bed with star-patterned sheets, a round window with curtains"
+
+6. THEMES TO WEAVE IN:
+   - Friendship, courage, kindness, or curiosity (subtle, not preachy)
+   - Wonder and imagination
+   - Problem-solving and resilience
+   - Celebration of uniqueness
+
+OUTPUT FORMAT (JSON):
 {
-    "title": "A catchy story title (without the character name)",
-    "characterOutfit": "Detailed description of what ${childName} is wearing throughout the story (e.g., 'a bright red t-shirt with a star, blue jeans, and white sneakers')",
+    "title": "An evocative, memorable title (2-4 words, no character name)",
+    "characterOutfit": "Precise description of ${childName}'s outfit worn throughout",
     "locations": {
-        "location1Name": "Detailed description of this location's appearance (colors, key items, style)",
-        "location2Name": "Detailed description of this location's appearance"
+        "locationName1": "Vivid description: colors, key features, atmosphere",
+        "locationName2": "Vivid description: colors, key features, atmosphere"
     },
     "pages": [
         {
             "pageNumber": 1,
-            "text": "The story text for this page (2-3 sentences)",
-            "location": "The location name from the locations object where this scene takes place",
-            "imagePrompt": "A detailed description for an illustration. MUST include: 1) ${childName} wearing [repeat the exact outfit], 2) The specific location with consistent details, 3) The action/scene"
-        },
-        ... (${pageCount} pages total)
+            "text": "Engaging text (2-4 sentences max). Use vivid verbs. Include sensory details.",
+            "location": "locationName1",
+            "imagePrompt": "Detailed scene: ${childName} in [exact outfit], at [location with specific details], doing [specific action with emotion]"
+        }
+        ... (${pageCount} pages)
     ]
 }
 
-CRITICAL: In each imagePrompt, you MUST:
-- Describe ${childName}'s outfit EXACTLY the same way every time
-- Describe locations EXACTLY the same way when they repeat
-- Never change the character's clothes or a location's appearance mid-story
-
-Make the story age-appropriate, engaging, and magical. Each page should flow naturally to the next.`;
+QUALITY STANDARD: Write as if this will be professionally published. Every sentence should delight and engage. Make parents want to read this aloud, and make children ask for it again and again.`;
 
     try {
         const endpoint = getCompletionsEndpoint();
