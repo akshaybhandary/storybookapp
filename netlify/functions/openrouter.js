@@ -13,6 +13,12 @@ export async function handler(event) {
     // Get API key from environment variable (set in Netlify dashboard)
     const apiKey = process.env.OPENROUTER_API_KEY;
 
+    console.log('Function invoked. Key exists?', !!apiKey);
+    if (apiKey) {
+        console.log('Key length:', apiKey.length);
+        console.log('Key starts with:', apiKey.substring(0, 8));
+    }
+
     if (!apiKey) {
         return {
             statusCode: 500,
