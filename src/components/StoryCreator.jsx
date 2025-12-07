@@ -146,15 +146,15 @@ export default function StoryCreator({ onClose, onStoryGenerated }) {
     };
 
     return (
-        <div className="modal active">
-            <div className="modal-backdrop" onClick={onClose}></div>
-            <div className="modal-content">
-                <button className="modal-close" onClick={onClose}>&times;</button>
-
+        <div className="page-container">
+            <div className="story-creator-page">
                 <div className="story-creator">
                     {step === 1 && (
                         <div className="creator-step">
-                            <h3 className="step-title">Upload Your Child's Photo</h3>
+                            <div className="step-header">
+                                <button className="back-link" onClick={onClose}>← Back to Home</button>
+                                <h3 className="step-title">Upload Your Child's Photo</h3>
+                            </div>
                             <p className="step-description">Choose a clear, well-lit photo where your child's face is visible</p>
 
                             <div className="photo-tips">

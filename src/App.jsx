@@ -56,7 +56,10 @@ function App() {
         libraryCount={libraryCount}
       />
 
-      <Hero onCreateStory={() => openModal('creator')} />
+      {/* Show Hero only when no full-page view is active */}
+      {(!activeModal || activeModal === 'library' || activeModal === 'settings') && (
+        <Hero onCreateStory={() => openModal('creator')} />
+      )}
 
       {activeModal === 'creator' && (
         <StoryCreator
