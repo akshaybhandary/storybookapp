@@ -78,22 +78,37 @@ export default function StoryCreator({ onClose, onStoryGenerated }) {
 
             // Prepare all image generation promises
             const imagePromises = [];
+            let completedImages = 0;
+            const totalImages = storyContent.pages.length + 1; // +1 for cover
+
+            // Helper to track progress
+            const trackImageCompletion = (promise) => {
+                return promise.then(result => {
+                    completedImages++;
+                    const imageProgress = 30 + Math.round((completedImages / totalImages) * 65); // 30% to 95%
+                    setProgress(imageProgress);
+                    setLoadingText(`Illustrated ${completedImages} of ${totalImages} pages...`);
+                    return result;
+                });
+            };
 
             // Cover image
             imagePromises.push(
-                generatePageImage(
-                    `Create a stunning storybook cover illustration for "${storyContent.title}". The cover should show ${childName} as the main character in an exciting pose or scene that captures the essence of the story. Style: vibrant, child-friendly, professional children's book cover art. Include magical elements, wonder, and adventure. Make it eye-catching and inviting.`,
-                    apiKey,
-                    0,
-                    photoPreview,
-                    childName,
-                    characterDescription,
-                    {
-                        characterOutfit: storyContent.characterOutfit,
-                        locations: storyContent.locations,
-                        currentLocation: storyContent.locations?.[0] || 'magical setting'
-                    }
-                ).then(url => ({ pageNumber: 0, text: '', image: url, isCover: true }))
+                trackImageCompletion(
+                    generatePageImage(
+                        `Create a stunning storybook cover illustration for "${storyContent.title}". The cover should show ${childName} as the main character in an exciting pose or scene that captures the essence of the story. Style: vibrant, child-friendly, professional children's book cover art. Include magical elements, wonder, and adventure. Make it eye-catching and inviting.`,
+                        apiKey,
+                        0,
+                        photoPreview,
+                        childName,
+                        characterDescription,
+                        {
+                            characterOutfit: storyContent.characterOutfit,
+                            locations: storyContent.locations,
+                            currentLocation: storyContent.locations?.[0] || 'magical setting'
+                        }
+                    ).then(url => ({ pageNumber: 0, text: '', image: url, isCover: true }))
+                )
             );
 
             // Story page images
@@ -106,26 +121,27 @@ export default function StoryCreator({ onClose, onStoryGenerated }) {
                 };
 
                 imagePromises.push(
-                    generatePageImage(
-                        pageData.imagePrompt,
-                        apiKey,
-                        i + 1,
-                        photoPreview,
-                        childName,
-                        characterDescription,
-                        storyContext
-                    ).then(url => ({
-                        pageNumber: pageData.pageNumber,
-                        text: pageData.text,
-                        image: url
-                    }))
+                    trackImageCompletion(
+                        generatePageImage(
+                            pageData.imagePrompt,
+                            apiKey,
+                            i + 1,
+                            photoPreview,
+                            childName,
+                            characterDescription,
+                            storyContext
+                        ).then(url => ({
+                            pageNumber: pageData.pageNumber,
+                            text: pageData.text,
+                            image: url
+                        }))
+                    )
                 );
             }
 
             // Generate all images at once!
-            setLoadingText(`Illustrating all ${imagePromises.length} pages at once...`);
+            setProgress(30); // Start at 30% (after story generation)
             const pages = await Promise.all(imagePromises);
-            incrementProgress();
 
             setProgress(100);
             setLoadingText('Putting it all together...');
