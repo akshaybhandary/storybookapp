@@ -30,6 +30,8 @@ export default function StoryCreator({ onClose, onStoryGenerated }) {
         }
     };
 
+    const [progress, setProgress] = useState(0);
+
     const handleGenerate = async () => {
         // In production, serverless function handles API key
         // Only check for key in development mode
@@ -48,17 +50,27 @@ export default function StoryCreator({ onClose, onStoryGenerated }) {
         }
 
         setStep(3);
+        setProgress(5);
 
         try {
             const pageCount = length === 'short' ? 5 : length === 'medium' ? 8 : 12;
+            const totalSteps = pageCount + 2; // Analysis + Story + Pages
+            let currentStep = 0;
+
+            const incrementProgress = () => {
+                currentStep++;
+                setProgress(Math.min(Math.round((currentStep / totalSteps) * 100), 95));
+            };
 
             // Step 1: Analyze the child's photo for consistent character description
             setLoadingText('Getting to know your little star...');
             const characterDescription = await analyzeChildPhoto(photoPreview, childName, apiKey);
+            incrementProgress();
 
             // Step 2: Generate the story content
             setLoadingText('Crafting your magical story...');
             const storyContent = await generateStoryContent(childName, storyPrompt, pageCount, apiKey);
+            incrementProgress();
 
             // Step 3: Generate illustrations with consistent character, outfit, and locations
             setLoadingText('Creating beautiful illustrations...');
@@ -66,6 +78,7 @@ export default function StoryCreator({ onClose, onStoryGenerated }) {
 
             for (let i = 0; i < storyContent.pages.length; i++) {
                 const pageData = storyContent.pages[i];
+                setProgress(Math.round(((2 + i) / totalSteps) * 100));
                 setLoadingText(`Illustrating page ${i + 1} of ${storyContent.pages.length}...`);
 
                 // Build story context with outfit and current location
@@ -91,8 +104,12 @@ export default function StoryCreator({ onClose, onStoryGenerated }) {
                     image: imageUrl
                 });
 
-                await new Promise(resolve => setTimeout(resolve, 1000));
+                await new Promise(resolve => setTimeout(resolve, 500)); // Slight delay for smooth UX
             }
+
+            setProgress(100);
+            setLoadingText('Putting it all together...');
+            await new Promise(resolve => setTimeout(resolve, 800)); // Show 100% briefly
 
             const story = {
                 id: Date.now().toString(),
@@ -107,25 +124,23 @@ export default function StoryCreator({ onClose, onStoryGenerated }) {
         } catch (error) {
             console.error('Error generating story:', error);
 
-            let errorMessage = 'Failed to generate story. ';
+            let errorTitle = 'Story Generation Paused';
+            let errorMessage = 'We encountered a small hiccup. Please try again.';
 
             if (error.message.includes('Image generation failed')) {
-                errorMessage = '❌ Image Generation Failed\n\n' +
-                    'The AI could not generate images for your storybook. This might be because:\n\n' +
-                    '• The image generation model is unavailable\n' +
-                    '• Your OpenRouter account needs credits\n' +
-                    '• The service is experiencing high demand\n\n' +
-                    'Please check the Debug Panel (🐛) for details and try again.\n\n' +
-                    'Tip: Check your OpenRouter dashboard at openrouter.ai';
+                errorTitle = 'Image Generation Issue';
+                errorMessage = 'We couldn\'t generate the illustrations right now. This is usually temporary. Please try again in a moment.';
             } else if (error.message.includes('API key')) {
-                errorMessage = '❌ API Key Error\n\nPlease check your OpenRouter API key in Settings.';
+                errorTitle = 'Setup Required';
+                errorMessage = 'Please check your settings to ensure everything is configured correctly.';
             } else if (error.message.includes('Story generation failed')) {
-                errorMessage = '❌ Story Generation Failed\n\n' + error.message;
-            } else {
-                errorMessage = '❌ Error: ' + error.message;
+                errorTitle = 'Story Creation Issue';
+                errorMessage = 'We had trouble writing the story. Please try a slightly different prompt.';
             }
 
-            alert(errorMessage);
+            // Show friendly custom alert/UI instead of browser alert
+            // For now, we'll use a cleaner alert, but ideally this would be an error state in the UI
+            alert(`${errorTitle}\n\n${errorMessage}`);
             setStep(2);
         }
     };
@@ -141,6 +156,11 @@ export default function StoryCreator({ onClose, onStoryGenerated }) {
                         <div className="creator-step">
                             <h3 className="step-title">Upload Your Child's Photo</h3>
                             <p className="step-description">Choose a clear, well-lit photo where your child's face is visible</p>
+
+                            <div className="photo-tips">
+                                <span className="tip-icon">✨</span>
+                                <span className="tip-text"><strong>Tip:</strong> Clear, close-up photos without hats or sunglasses work best for creating a consistent character!</span>
+                            </div>
 
                             {!photoPreview ? (
                                 <div className="upload-zone" onClick={() => document.getElementById('photo-input').click()}>
@@ -254,6 +274,15 @@ export default function StoryCreator({ onClose, onStoryGenerated }) {
                                         <div className="page"></div>
                                         <div className="page"></div>
                                     </div>
+                                </div>
+                                <div className="progress-container">
+                                    <div className="progress-bar">
+                                        <div
+                                            className="progress-fill"
+                                            style={{ width: `${progress}%` }}
+                                        ></div>
+                                    </div>
+                                    <div className="progress-percentage">{progress}%</div>
                                 </div>
                                 <p className="loading-text">{loadingText}</p>
                             </div>
