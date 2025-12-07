@@ -3,46 +3,49 @@
 /* Sophisticated, Warm, Story-focused */
 /* ================================= */
 
+
 :root {
-    /* PRIMARY BRAND COLORS - Warm & Inviting */
-    --brand-primary: #E67E50;
-    /* Sunset Coral - warmth, creativity, joy */
-    --brand-primary-light: #F29D6F;
-    --brand-primary-dark: #D96A3D;
+    /* MAGICAL BOOKSTORE THEME - Deep Navy + Gold */
 
-    /* SECONDARY COLORS - Storytelling Blues */
-    --brand-secondary: #4A7C9A;
-    /* Story Blue - trust, calm, imagination */
-    --brand-secondary-light: #6B9FBF;
-    --brand-secondary-dark: #3A6179;
+    /* PRIMARY COLORS - Enchanted Gold */
+    --brand-primary: #D4AF37;
+    /* Classic Gold - magic, wonder, prestige */
+    --brand-primary-light: #E8C547;
+    --brand-primary-dark: #B8941F;
 
-    /* ACCENT COLORS - Magical Touch */
-    --brand-accent-magic: #9B6FDB;
-    /* Fairy Tale Purple */
-    --brand-accent-sunshine: #FFB84D;
-    /* Golden Hour */
-    --brand-accent-forest: #5FB894;
-    /* Adventure Green */
+    /* SECONDARY COLORS - Midnight Navy */
+    --brand-secondary: #1B1F3B;
+    /* Deep Midnight - mystery, elegance */
+    --brand-secondary-light: #2A2F52;
+    --brand-secondary-dark: #131628;
 
-    /* NEUTRAL PALETTE - Clean & Professional */
-    --neutral-50: #FAFAF9;
-    --neutral-100: #F5F5F4;
-    --neutral-200: #E7E5E4;
-    --neutral-300: #D6D3D1;
-    --neutral-400: #A8A29E;
-    --neutral-500: #78716C;
-    --neutral-600: #57534E;
-    --neutral-700: #44403C;
-    --neutral-800: #292524;
-    --neutral-900: #1C1917;
+    /* ACCENT COLORS - Magical Touches */
+    --brand-accent-magic: #9B7EBD;
+    /* Mystic Purple */
+    --brand-accent-bronze: #CD7F32;
+    /* Antique Bronze */
+    --brand-accent-cream: #F5EDD6;
+    /* Aged Parchment */
+
+    /* NEUTRAL PALETTE */
+    --neutral-50: #F5F5F0;
+    --neutral-100: #EEEEE8;
+    --neutral-200: #DDDDD5;
+    --neutral-300: #CCCCC2;
+    --neutral-400: #999988;
+    --neutral-500: #666655;
+    --neutral-600: #4D4D44;
+    --neutral-700: #333330;
+    --neutral-800: #1F1F1D;
+    --neutral-900: #0D0D0C;
 
     /* SEMANTIC COLORS */
-    --color-success: #10B981;
-    --color-warning: #F59E0B;
-    --color-error: #EF4444;
-    --color-info: #3B82F6;
+    --color-success: #5FB894;
+    --color-warning: #D4AF37;
+    --color-error: #C94B4B;
+    --color-info: #6B9FBF;
 
-    /* APPLICATION COLORS (Referencing brand palette) */
+    /* APPLICATION COLORS */
     --primary: var(--brand-primary);
     --primary-light: var(--brand-primary-light);
     --primary-dark: var(--brand-primary-dark);
@@ -52,50 +55,46 @@
     --secondary-dark: var(--brand-secondary-dark);
 
     --accent: var(--brand-accent-magic);
-    --accent-alt: var(--brand-accent-sunshine);
+    --accent-alt: var(--brand-accent-bronze);
 
-    /* BACKGROUNDS */
-    --bg-body: var(--neutral-900);
-    --bg-card: rgba(255, 255, 255, 0.05);
-    --bg-elevated: rgba(255, 255, 255, 0.08);
-    --bg-gradient-hero: linear-gradient(135deg,
-            hsl(211, 36%, 31%) 0%,
-            hsl(266, 45%, 35%) 50%,
-            hsl(16, 68%, 50%) 100%);
+    /* BACKGROUNDS - Deep Magical Atmosphere */
+    --bg-body: #0F1126;
+    --bg-card: rgba(27, 31, 59, 0.6);
+    --bg-elevated: rgba(42, 47, 82, 0.8);
+    --bg-gradient-hero: radial-gradient(ellipse at center,
+            hsl(235, 48%, 18%) 0%,
+            hsl(235, 55%, 12%) 50%,
+            hsl(235, 65%, 8%) 100%);
 
-    /* TEXT COLORS */
-    --text-primary: var(--neutral-50);
-    --text-secondary: var(--neutral-300);
-    --text-muted: var(--neutral-400);
-    --text-inverse: var(--neutral-900);
+    /* TEXT COLORS - Golden & Cream */
+    --text-primary: var(--brand-accent-cream);
+    --text-secondary: #C9C5B8;
+    --text-muted: #9B9785;
+    --text-inverse: var(--brand-secondary-dark);
+    --text-gold: var(--brand-primary);
 
-    /* BORDERS & LINES */
-    --border-subtle: rgba(255, 255, 255, 0.1);
-    --border-medium: rgba(255, 255, 255, 0.2);
-    --border-strong: rgba(255, 255, 255, 0.3);
+    /* BORDERS - Golden Accents */
+    --border-subtle: rgba(212, 175, 55, 0.15);
+    --border-medium: rgba(212, 175, 55, 0.3);
+    --border-strong: rgba(212, 175, 55, 0.5);
+    --border-gold: var(--brand-primary);
 
-    /* SHADOWS - Enhanced depth */
-    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
-    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
-    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
-    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.3);
-    --shadow-glow: 0 0 20px rgba(230, 126, 80, 0.3);
+    /* SHADOWS - Magical Glow */
+    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.5);
+    --shadow-lg: 0 10px 20px rgba(0, 0, 0, 0.6);
+    --shadow-xl: 0 20px 40px rgba(0, 0, 0, 0.7);
+    --shadow-glow: 0 0 30px rgba(212, 175, 55, 0.4);
+    --shadow-glow-strong: 0 0 40px rgba(212, 175, 55, 0.6);
 
-    /* SPACING SYSTEM (8px base) */
+    /* SPACING SYSTEM */
     --space-xs: 0.5rem;
-    /* 8px */
     --space-sm: 0.75rem;
-    /* 12px */
     --space-md: 1rem;
-    /* 16px */
     --space-lg: 1.5rem;
-    /* 24px */
     --space-xl: 2rem;
-    /* 32px */
     --space-2xl: 3rem;
-    /* 48px */
     --space-3xl: 4rem;
-    /* 64px */
 
     /* BORDER RADIUS */
     --radius-sm: 4px;
@@ -105,7 +104,7 @@
     --radius-2xl: 24px;
     --radius-full: 9999px;
 
-    /* TYPOGRAPHY */
+    /* TYPOGRAPHY - Classic Storybook */
     --font-primary: 'Fredoka', sans-serif;
 
     /* Transitions */
@@ -137,7 +136,7 @@ body {
     align-items: center;
     justify-content: center;
     overflow: hidden;
-    background: linear-gradient(135deg, hsl(250, 40%, 10%) 0%, hsl(280, 40%, 15%) 100%);
+    background: var(--bg-gradient-hero);
 }
 
 /* Smooth Animated Starfield Background */
@@ -318,13 +317,13 @@ body {
 }
 
 .cta-button {
-    background: linear-gradient(135deg, var(--primary) 0%, var(--accent-alt) 100%);
-    border: none;
-    color: white;
+    background: transparent;
+    border: 2px solid var(--border-gold);
+    color: var(--text-gold);
     padding: 1.25rem 3rem;
     font-size: 1.25rem;
     font-weight: 600;
-    border-radius: var(--radius-xl);
+    border-radius: var(--radius-full);
     cursor: pointer;
     transition: all var(--transition-base);
     box-shadow: var(--shadow-glow);
@@ -339,13 +338,15 @@ body {
     left: -100%;
     width: 100%;
     height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.2), transparent);
     transition: left var(--transition-slow);
 }
 
 .cta-button:hover {
     transform: translateY(-2px);
-    box-shadow: 0 0 30px rgba(147, 51, 234, 0.5);
+    background: var(--primary);
+    color: var(--text-inverse);
+    box-shadow: var(--shadow-glow-strong);
 }
 
 .cta-button:hover::before {
