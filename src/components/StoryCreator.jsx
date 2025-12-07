@@ -331,6 +331,14 @@ export default function StoryCreator({ onClose, onStoryGenerated }) {
                                     <div className="progress-percentage">{progress}%</div>
                                 </div>
                                 <p className="loading-text">{loadingText}</p>
+                                <p className="loading-warning" style={{
+                                    fontSize: '0.9rem',
+                                    color: '#D4AF37',
+                                    marginTop: '1rem',
+                                    textAlign: 'center'
+                                }}>
+                                    ⏱️ This might take 4-5 minutes. Please don't close your browser!
+                                </p>
                             </div>
                         </div>
                     )}

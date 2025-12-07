@@ -204,23 +204,33 @@ export async function analyzeChildPhoto(photoBase64, childName, apiKey) {
     try {
         const endpoint = getCompletionsEndpoint();
 
-        const analysisPrompt = `Analyze this photo of a child named ${childName} and provide a detailed character description that can be used consistently across multiple children's book illustrations.
+        const analysisPrompt = `Analyze this photo of a child named ${childName} and provide a VERY detailed character description that can be used consistently across multiple children's book illustrations.
 
-Please describe in detail:
+CRITICAL: Pay special attention to hair - it MUST remain exactly the same in all illustrations!
+
+Please describe in EXTREME detail:
 1. Skin tone (be specific: light, medium, olive, tan, brown, dark brown, etc.)
-2. Hair color (specific shade)
-3. Hair style (length, texture, any distinctive features)
-4. Eye color
+2. **HAIR COLOR** (exact shade - be very specific: jet black, dark brown, light brown, blonde, strawberry blonde, auburn, etc.)
+3. **HAIR STYLE** (CRITICAL - describe in detail):
+   - Exact length (shoulder-length, chin-length, very short, long past shoulders, etc.)
+   - Texture (straight, wavy, curly, type 3a curls, type 4c coils, etc.)
+   - Part location (center part, side part, no part)
+   - Any styling (ponytail, braids, buns, loose, etc.)
+   - Bangs or no bangs
+   - Volume (thick, fine, voluminous)
+4. Eye color (exact shade)
 5. Approximate age
 6. Any distinctive features (glasses, dimples, freckles, etc.)
 7. Face shape
 
 Respond with a JSON object:
 {
-    "characterDescription": "A detailed paragraph describing the child's appearance that can be used as a character reference for illustrations",
+    "characterDescription": "A detailed paragraph describing the child's appearance that can be used as a character reference for illustrations. EMPHASIZE HAIR DETAILS.",
     "skinTone": "specific skin tone",
-    "hairColor": "specific hair color",
-    "hairStyle": "description of hair",
+    "hairColor": "EXACT specific hair color shade",
+    "hairStyle": "VERY DETAILED description of hair - length, texture, style, part, everything",
+    "hairLength": "specific length description",
+    "hairTexture": "specific texture (straight/wavy/curly/etc)",
     "eyeColor": "eye color",
     "approximateAge": "age range like 4-6 years",
     "distinctiveFeatures": "any notable features or 'none'",
@@ -303,13 +313,20 @@ export async function generatePageImage(imagePrompt, apiKey, pageNumber = 0, chi
         let characterRef = '';
         if (characterDescription && characterDescription.characterDescription) {
             characterRef = `
-CHARACTER APPEARANCE (MAINTAIN EXACT CONSISTENCY):
+CHARACTER APPEARANCE (MAINTAIN EXACT CONSISTENCY IN EVERY IMAGE):
 ${characterDescription.characterDescription}
+
+CRITICAL - DO NOT CHANGE THESE:
 - Skin tone: ${characterDescription.skinTone || 'match the reference photo'}
-- Hair: ${characterDescription.hairColor || ''} ${characterDescription.hairStyle || ''}
+- **HAIR COLOR (NEVER CHANGE)**: ${characterDescription.hairColor || 'match reference photo exactly'}
+- **HAIR STYLE (NEVER CHANGE)**: ${characterDescription.hairStyle || 'match reference photo exactly'}
+  ${characterDescription.hairLength ? `  * Length: ${characterDescription.hairLength}` : ''}
+  ${characterDescription.hairTexture ? `  * Texture: ${characterDescription.hairTexture}` : ''}
 - Eyes: ${characterDescription.eyeColor || 'match the reference photo'}
 - Age appearance: ${characterDescription.approximateAge || 'young child'}
-${characterDescription.distinctiveFeatures && characterDescription.distinctiveFeatures !== 'none' ? `- Distinctive features: ${characterDescription.distinctiveFeatures}` : ''}`;
+${characterDescription.distinctiveFeatures && characterDescription.distinctiveFeatures !== 'none' ? `- Distinctive features: ${characterDescription.distinctiveFeatures}` : ''}
+
+IMPORTANT: The hair MUST look exactly the same as in the reference photo and all other illustrations. Same color, same style, same length every single time!`;
         }
 
         // Build story context (outfit and locations)
