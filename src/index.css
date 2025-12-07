@@ -139,45 +139,49 @@ body {
     background: var(--bg-gradient-hero);
 }
 
-/* Smooth Animated Starfield Background */
+/* Magical Animated Starfield Background */
 .stars,
 .stars2,
 .stars3 {
     position: absolute;
     top: 0;
     left: 0;
-    width: 1px;
-    height: 1px;
+    width: 2px;
+    height: 2px;
     pointer-events: none;
+    border-radius: 50%;
 }
 
 .stars {
     box-shadow:
-        100px 200px white, 300px 100px white, 500px 300px white,
-        700px 150px white, 900px 250px white, 1100px 180px white,
-        200px 400px white, 400px 500px white, 600px 450px white,
-        800px 600px white, 1000px 550px white, 1200px 500px white,
-        150px 700px white, 350px 800px white, 550px 750px white,
-        750px 850px white, 950px 900px white, 1150px 820px white;
+        100px 200px 2px rgba(255, 255, 255, 0.9), 300px 100px 1px rgba(255, 255, 255, 0.8),
+        500px 300px 1px white, 700px 150px 2px rgba(255, 255, 255, 0.9),
+        900px 250px 1px rgba(255, 255, 255, 0.7), 1100px 180px 1px white,
+        200px 400px 2px rgba(255, 255, 255, 0.8), 400px 500px 1px white,
+        600px 450px 1px rgba(255, 255, 255, 0.9), 800px 600px 2px white,
+        1000px 550px 1px rgba(255, 255, 255, 0.8), 1200px 500px 1px rgba(255, 255, 255, 0.9),
+        150px 700px 2px white, 350px 800px 1px rgba(255, 255, 255, 0.9),
+        550px 750px 1px white, 750px 850px 2px rgba(255, 255, 255, 0.8),
+        950px 900px 1px rgba(255, 255, 255, 0.9), 1150px 820px 1px white;
     animation: animateStars 100s linear infinite;
 }
 
 .stars2 {
     box-shadow:
-        200px 150px rgba(255, 255, 255, 0.7), 400px 250px rgba(255, 255, 255, 0.7),
-        600px 200px rgba(255, 255, 255, 0.7), 800px 350px rgba(255, 255, 255, 0.7),
-        300px 450px rgba(255, 255, 255, 0.7), 500px 550px rgba(255, 255, 255, 0.7),
-        700px 650px rgba(255, 255, 255, 0.7), 900px 750px rgba(255, 255, 255, 0.7),
-        250px 850px rgba(255, 255, 255, 0.7), 450px 950px rgba(255, 255, 255, 0.7);
+        200px 150px 3px rgba(212, 175, 55, 0.6), 400px 250px 2px rgba(212, 175, 55, 0.5),
+        600px 200px 2px rgba(212, 175, 55, 0.7), 800px 350px 3px rgba(212, 175, 55, 0.6),
+        300px 450px 2px rgba(212, 175, 55, 0.5), 500px 550px 3px rgba(212, 175, 55, 0.7),
+        700px 650px 2px rgba(212, 175, 55, 0.6), 900px 750px 3px rgba(212, 175, 55, 0.5),
+        250px 850px 2px rgba(212, 175, 55, 0.7), 450px 950px 3px rgba(212, 175, 55, 0.6);
     animation: animateStars 150s linear infinite;
 }
 
 .stars3 {
     box-shadow:
-        150px 300px rgba(255, 255, 255, 0.5), 450px 200px rgba(255, 255, 255, 0.5),
-        650px 400px rgba(255, 255, 255, 0.5), 850px 300px rgba(255, 255, 255, 0.5),
-        350px 600px rgba(255, 255, 255, 0.5), 550px 700px rgba(255, 255, 255, 0.5),
-        750px 800px rgba(255, 255, 255, 0.5), 950px 900px rgba(255, 255, 255, 0.5);
+        150px 300px 4px rgba(155, 126, 189, 0.5), 450px 200px 3px rgba(155, 126, 189, 0.4),
+        650px 400px 3px rgba(155, 126, 189, 0.6), 850px 300px 4px rgba(155, 126, 189, 0.5),
+        350px 600px 3px rgba(155, 126, 189, 0.4), 550px 700px 4px rgba(155, 126, 189, 0.6),
+        750px 800px 3px rgba(155, 126, 189, 0.5), 950px 900px 4px rgba(155, 126, 189, 0.4);
     animation: animateStars 200s linear infinite;
 }
 

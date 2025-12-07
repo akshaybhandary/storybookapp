@@ -1,22 +1,30 @@
 <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- Open Book -->
-  <path d="M6 12C6 10.8954 6.89543 10 8 10H22C23.1046 10 24 10.8954 24 12V36C24 37.1046 23.1046 38 22 38H8C6.89543 38 6 37.1046 6 36V12Z" fill="#E67E50"/>
-  <path d="M24 12C24 10.8954 24.8954 10 26 10H40C41.1046 10 42 10.8954 42 12V36C42 37.1046 41.1046 38 40 38H26C24.8954 38 24 37.1046 24 36V12Z" fill="#4A7C9A"/>
+  <!-- Golden Book -->
+  <path d="M10 12C10 10.3431 11.3431 9 13 9H35C36.6569 9 38 10.3431 38 12V36C38 37.6569 36.6569 39 35 39H13C11.3431 39 10 37.6569 10 36V12Z" fill="#D4AF37"/>
   
-  <!-- Book Spine -->
-  <rect x="23" y="10" width="2" height="28" fill="#3A6179"/>
+  <!-- Book Spine Shadow -->
+  <path d="M23 9H25V39H23V9Z" fill="#B8941F" opacity="0.5"/>
   
-  <!-- Pages Detail -->
-  <path d="M10 14H20M10 18H20M10 22H20M10 26H20" stroke="white" stroke-width="1.5" stroke-linecap="round" opacity="0.6"/>
-  <path d="M28 14H38M28 18H38M28 22H38M28 26H38" stroke="white" stroke-width="1.5" stroke-linecap="round" opacity="0.6"/>
+  <!-- Pages -->
+  <path d="M14 14H22M14 18H22M14 22H22M14 26H22M14 30H22" stroke="#F5EDD6" stroke-width="1.5" stroke-linecap="round" opacity="0.7"/>
+  <path d="M26 14H34M26 18H34M26 22H34M26 26H34M26 30H34" stroke="#F5EDD6" stroke-width="1.5" stroke-linecap="round" opacity="0.7"/>
   
-  <!-- Magical Sparkles -->
-  <circle cx="12" cy="8" r="2" fill="#9B6FDB"/>
-  <circle cx="36" cy="8" r="1.5" fill="#FFB84D"/>
-  <circle cx="8" cy="40" r="1.5" fill="#9B6FDB"/>
-  <circle cx="40" cy="40" r="2" fill="#FFB84D"/>
+  <!-- Decorative Corner Ornaments -->
+  <circle cx="13" cy="12" r="1.5" fill="#E8C547"/>
+  <circle cx="35" cy="12" r="1.5" fill="#E8C547"/>
+  <circle cx="13" cy="36" r="1.5" fill="#E8C547"/>
+  <circle cx="35" cy="36" r="1.5" fill="#E8C547"/>
   
-  <!-- Star Sparkles -->
-  <path d="M18 6L18.5 7.5L20 8L18.5 8.5L18 10L17.5 8.5L16 8L17.5 7.5L18 6Z" fill="#9B6FDB"/>
-  <path d="M32 42L32.5 43.5L34 44L32.5 44.5L32 46L31.5 44.5L30 44L31.5 43.5L32 42Z" fill="#FFB84D"/>
+  <!-- Magical Sparkle -->
+  <path d="M40 8L40.8 10.2L43 11L40.8 11.8L40 14L39.2 11.8L37 11L39.2 10.2L40 8Z" fill="#E8C547" filter="url(#glow)"/>
+  
+  <defs>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="1" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
 </svg>
