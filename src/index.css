@@ -1252,20 +1252,70 @@ body {
 
 /* Print Styles */
 @media print {
+
+    /* Hide everything except the story */
     body * {
         visibility: hidden;
     }
 
-    .storybook-pages,
-    .storybook-pages * {
-        visibility: visible;
+    /* Show the story viewer and all its children */
+    .storybook-viewer,
+    .storybook-viewer *,
+    .book-spread,
+    .book-spread *,
+    .book-page-spread,
+    .book-page-spread *,
+    .book-cover-page,
+    .book-cover-page * {
+        visibility: visible !important;
     }
 
-    .storybook-pages {
-        position: absolute;
-        left: 0;
-        top: 0;
+    /* Hide UI elements we don't want in print */
+    .storybook-header,
+    .action-buttons,
+    .nav-buttons,
+    .page-navigation,
+    button {
+        display: none !important;
+    }
+
+    /* Make story take full page */
+    .story-book-modal {
+        position: static !important;
+        max-width: 100% !important;
+        max-height: none !important;
+        background: white !important;
+    }
+
+    .storybook-viewer {
+        position: static !important;
+        width: 100% !important;
+        background: white !important;
+    }
+
+    /* Show ALL pages for printing */
+    .book-page-spread,
+    .book-cover-page {
+        display: flex !important;
+        page-break-after: always;
+        page-break-inside: avoid;
         width: 100%;
+        height: auto;
+        min-height: 90vh;
+    }
+
+    /* Make images print-friendly */
+    img {
+        max-width: 100%;
+        height: auto;
+        page-break-inside: avoid;
+    }
+
+    /* Ensure colors print */
+    * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color-adjust: exact !important;
     }
 }
 
