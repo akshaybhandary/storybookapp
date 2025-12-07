@@ -73,62 +73,59 @@ export default function StoryCreator({ onClose, onStoryGenerated }) {
             incrementProgress();
 
 
-            // Step 3: Generate cover illustration
-            setLoadingText('Designing your magical book cover...');
-            const coverImageUrl = await generatePageImage(
-                `Create a stunning storybook cover illustration for "${storyContent.title}". The cover should show ${childName} as the main character in an exciting pose or scene that captures the essence of the story. Style: vibrant, child-friendly, professional children's book cover art. Include magical elements, wonder, and adventure. Make it eye-catching and inviting.`,
-                apiKey,
-                0, // Page 0 = cover
-                photoPreview,
-                childName,
-                characterDescription,
-                {
-                    characterOutfit: storyContent.characterOutfit,
-                    locations: storyContent.locations,
-                    currentLocation: storyContent.locations?.[0] || 'magical setting'
-                }
-            );
-            incrementProgress();
-
-            // Step 4: Generate illustrations for story pages
+            // Step 3: Generate ALL illustrations in parallel (MUCH FASTER!)
             setLoadingText('Creating beautiful illustrations...');
-            const pages = [{
-                pageNumber: 0,
-                text: '', // Cover has no text, just title display
-                image: coverImageUrl,
-                isCover: true
-            }];
 
-            for (let i = 0; i < storyContent.pages.length; i++) {
-                const pageData = storyContent.pages[i];
-                setProgress(Math.round(((3 + i) / totalSteps) * 100));
-                setLoadingText(`Illustrating page ${i + 1} of ${storyContent.pages.length}...`);
+            // Prepare all image generation promises
+            const imagePromises = [];
 
-                // Build story context with outfit and current location
-                const storyContext = {
-                    characterOutfit: storyContent.characterOutfit,
-                    locations: storyContent.locations,
-                    currentLocation: pageData.location  // The location for this specific page
-                };
-
-                // Pass photo, name, character description, AND story context for full consistency
-                const imageUrl = await generatePageImage(
-                    pageData.imagePrompt,
+            // Cover image
+            imagePromises.push(
+                generatePageImage(
+                    `Create a stunning storybook cover illustration for "${storyContent.title}". The cover should show ${childName} as the main character in an exciting pose or scene that captures the essence of the story. Style: vibrant, child-friendly, professional children's book cover art. Include magical elements, wonder, and adventure. Make it eye-catching and inviting.`,
                     apiKey,
-                    i + 1,
+                    0,
                     photoPreview,
                     childName,
                     characterDescription,
-                    storyContext  // New: outfit and location info
-                );
-                pages.push({
-                    pageNumber: pageData.pageNumber,
-                    text: pageData.text,
-                    image: imageUrl
-                });
+                    {
+                        characterOutfit: storyContent.characterOutfit,
+                        locations: storyContent.locations,
+                        currentLocation: storyContent.locations?.[0] || 'magical setting'
+                    }
+                ).then(url => ({ pageNumber: 0, text: '', image: url, isCover: true }))
+            );
 
-                await new Promise(resolve => setTimeout(resolve, 500)); // Slight delay for smooth UX
+            // Story page images
+            for (let i = 0; i < storyContent.pages.length; i++) {
+                const pageData = storyContent.pages[i];
+                const storyContext = {
+                    characterOutfit: storyContent.characterOutfit,
+                    locations: storyContent.locations,
+                    currentLocation: pageData.location
+                };
+
+                imagePromises.push(
+                    generatePageImage(
+                        pageData.imagePrompt,
+                        apiKey,
+                        i + 1,
+                        photoPreview,
+                        childName,
+                        characterDescription,
+                        storyContext
+                    ).then(url => ({
+                        pageNumber: pageData.pageNumber,
+                        text: pageData.text,
+                        image: url
+                    }))
+                );
             }
+
+            // Generate all images at once!
+            setLoadingText(`Illustrating all ${imagePromises.length} pages at once...`);
+            const pages = await Promise.all(imagePromises);
+            incrementProgress();
 
             setProgress(100);
             setLoadingText('Putting it all together...');
