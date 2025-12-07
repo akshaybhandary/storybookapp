@@ -105,7 +105,8 @@ export default function StoryCreator({ onClose, onStoryGenerated }) {
                         {
                             characterOutfit: storyContent.characterOutfit,
                             locations: storyContent.locations,
-                            currentLocation: storyContent.locations?.[0] || 'magical setting'
+                            currentLocation: storyContent.locations?.[0] || 'magical setting',
+                            characters: storyContent.characters || {}
                         }
                     ).then(url => ({ pageNumber: 0, text: '', image: url, isCover: true }))
                 )
@@ -117,7 +118,8 @@ export default function StoryCreator({ onClose, onStoryGenerated }) {
                 const storyContext = {
                     characterOutfit: storyContent.characterOutfit,
                     locations: storyContent.locations,
-                    currentLocation: pageData.location
+                    currentLocation: pageData.location,
+                    characters: storyContent.characters || {}
                 };
 
                 imagePromises.push(

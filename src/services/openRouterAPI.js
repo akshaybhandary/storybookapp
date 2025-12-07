@@ -74,10 +74,12 @@ STORYTELLING EXCELLENCE REQUIREMENTS:
    - Final pages: Climax, resolution, heartwarming ending with a gentle lesson
 
 5. VISUAL CONSISTENCY (CRITICAL):
-   - OUTFIT: ${childName} wears ONE specific outfit throughout. Define it clearly on page 1.
+   - OUTFIT: ${childName} wears ONE specific outfit throughout. Define it clearly.
    - LOCATIONS: Each location has consistent colors, furniture, and style whenever it appears
+   - **CHARACTERS**: Define ALL characters (friends, animals, adults) with specific appearance details. They MUST look exactly the same on every page!
    - Example outfit: "a cozy blue hoodie with a friendly dinosaur, green cargo pants, red sneakers"
    - Example location: "A sunlit bedroom with yellow walls, a wooden bed with star-patterned sheets, a round window with curtains"
+   - Example character: "Luna the cat: small fluffy white cat with bright green eyes, pink collar with bell, always playful"
 
 6. THEMES TO WEAVE IN:
    - Friendship, courage, kindness, or curiosity (subtle, not preachy)
@@ -89,6 +91,11 @@ OUTPUT FORMAT (JSON):
 {
     "title": "An evocative, memorable title (2-4 words, no character name)",
     "characterOutfit": "Precise description of ${childName}'s outfit worn throughout",
+    "characters": {
+        "${childName}": "The main character (will be described separately from uploaded photo)",
+        "characterName2": "DETAILED appearance: species/type, size, colors, distinctive features, clothing if any. Be VERY specific!",
+        "characterName3": "DETAILED appearance: species/type, size, colors, distinctive features, clothing if any"
+    },
     "locations": {
         "locationName1": "Vivid description: colors, key features, atmosphere",
         "locationName2": "Vivid description: colors, key features, atmosphere"
@@ -98,11 +105,14 @@ OUTPUT FORMAT (JSON):
             "pageNumber": 1,
             "text": "Engaging text (2-4 sentences max). Use vivid verbs. Include sensory details.",
             "location": "locationName1",
-            "imagePrompt": "Detailed scene: ${childName} in [exact outfit], at [location with specific details], doing [specific action with emotion]"
+            "charactersPresent": ["${childName}", "characterName2"],
+            "imagePrompt": "Detailed scene: ${childName} in [exact outfit], [other characters with exact appearance], at [location with specific details], doing [specific action with emotion]"
         }
         ... (${pageCount} pages)
     ]
 }
+
+IMPORTANT: If you introduce ANY character besides ${childName} (friends, animals, adults, magical creatures), you MUST define their appearance in the "characters" object with EXTREME detail so they look identical on every page!
 
 QUALITY STANDARD: Write as if this will be professionally published. Every sentence should delight and engage. Make parents want to read this aloud, and make children ask for it again and again.`;
 
@@ -329,7 +339,7 @@ ${characterDescription.distinctiveFeatures && characterDescription.distinctiveFe
 IMPORTANT: The hair MUST look exactly the same as in the reference photo and all other illustrations. Same color, same style, same length every single time!`;
         }
 
-        // Build story context (outfit and locations)
+        // Build story context (outfit, locations, and ALL characters)
         let storyConsistency = '';
         if (storyContext) {
             storyConsistency = `
@@ -340,6 +350,16 @@ ${storyContext.currentLocation && storyContext.locations && storyContext.locatio
 CURRENT LOCATION - ${storyContext.currentLocation.toUpperCase()}:
 ${storyContext.locations[storyContext.currentLocation]}
 If this location appeared before, it MUST look identical.
+` : ''}
+
+${storyContext.characters && Object.keys(storyContext.characters).length > 0 ? `
+OTHER CHARACTERS IN THIS STORY (MUST LOOK IDENTICAL ON EVERY PAGE):
+${Object.entries(storyContext.characters)
+                        .filter(([name]) => name !== childName) // Exclude main character (already described above)
+                        .map(([name, description]) => `- ${name}: ${description}`)
+                        .join('\n')}
+
+IMPORTANT: If any of these characters appear in this illustration, they MUST match these exact descriptions!
 ` : ''}`;
         }
 
