@@ -26,9 +26,42 @@ export async function generateEPUB(story) {
 
     // OEBPS folder for content
     const oebps = zip.folder('OEBPS');
+    const images = oebps.folder('images');
+
+    // Extract and save images
+    const pages = story.pages || [];
+    const imageManifest = [];
+
+    for (let i = 0; i < pages.length; i++) {
+        const page = pages[i];
+        if (page.image) {
+            try {
+                // Extract base64 data from data URL
+                const base64Data = page.image.split(',')[1];
+                const mimeType = page.image.match(/data:([^;]+);/)?.[1] || 'image/jpeg';
+                const ext = mimeType.split('/')[1];
+                const filename = `image${i + 1}.${ext}`;
+
+                // Add image to ZIP
+                images.file(filename, base64Data, { base64: true });
+
+                // Track for manifest
+                imageManifest.push({
+                    id: `img${i + 1}`,
+                    href: `images/${filename}`,
+                    mediaType: mimeType
+                });
+
+                // Update page reference
+                pages[i].imageRef = `images/${filename}`;
+            } catch (error) {
+                console.error(`Failed to process image ${i}:`, error);
+            }
+        }
+    }
 
     // Generate content.opf (package document)
-    const contentOpf = generateContentOpf(story);
+    const contentOpf = generateContentOpf(story, imageManifest);
     oebps.file('content.opf', contentOpf);
 
     // Generate toc.ncx (navigation)
@@ -39,9 +72,6 @@ export async function generateEPUB(story) {
     const css = generateCSS();
     oebps.file('styles.css', css);
 
-    // Generate HTML pages
-    const pages = story.pages || [];
-
     // Title page
     const titlePageHtml = generateTitlePage(story);
     oebps.file('title.xhtml', titlePageHtml);
@@ -51,12 +81,6 @@ export async function generateEPUB(story) {
         const page = pages[i];
         const pageHtml = generateStoryPage(page, i + 1, story.title);
         oebps.file(`page${i + 1}.xhtml`, pageHtml);
-
-        // Embed images as base64 (for compatibility)
-        if (page.image) {
-            // Images are already base64 data URLs from the app
-            // We'll embed them directly in HTML
-        }
     }
 
     // Generate the EPUB file
@@ -71,7 +95,7 @@ export async function generateEPUB(story) {
     saveAs(blob, filename);
 }
 
-function generateContentOpf(story) {
+function generateContentOpf(story, imageManifest = []) {
     const pages = story.pages || [];
     const pageCount = pages.length;
 
@@ -91,6 +115,9 @@ function generateContentOpf(story) {
         <item id="title" href="title.xhtml" media-type="application/xhtml+xml"/>
         ${pages.map((_, i) =>
         `<item id="page${i + 1}" href="page${i + 1}.xhtml" media-type="application/xhtml+xml"/>`
+    ).join('\n        ')}
+        ${imageManifest.map(img =>
+        `<item id="${img.id}" href="${img.href}" media-type="${img.mediaType}"/>`
     ).join('\n        ')}
     </manifest>
     <spine toc="ncx">
@@ -199,8 +226,10 @@ function generateTitlePage(story) {
 }
 
 function generateStoryPage(page, pageNum, storyTitle) {
-    const imageHtml = page.image ?
-        `<img class="page-image" src="${page.image}" alt="Page ${pageNum} illustration"/>` : '';
+    // Use imageRef (file path) if available, otherwise fall back to data URL
+    const imageSrc = page.imageRef || page.image;
+    const imageHtml = imageSrc ?
+        `<img class="page-image" src="${imageSrc}" alt="Page ${pageNum} illustration"/>` : '';
 
     return `<?xml version="1.0" encoding="UTF-8"?>
 <html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops">
