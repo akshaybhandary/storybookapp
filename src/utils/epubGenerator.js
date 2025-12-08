@@ -254,7 +254,7 @@ function generateTitlePage(story, coverPage = null) {
     <div class="title-page">
         ${coverImageHtml}
         <h1>${escapeXml(story.title)}</h1>
-        <p style="font-style: italic; color: #666;">Created with StoryBook Magic</p>
+        <p style="font-size: 1.5em; color: #555; margin-top: 0.5em;">Starring ${escapeXml(story.childName)}</p>
     </div>
 </body>
 </html>`;
