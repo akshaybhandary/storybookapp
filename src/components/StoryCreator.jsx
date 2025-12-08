@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { generateStoryContent, generatePageImage, analyzeChildPhoto } from '../services/openRouterAPI';
+import { generateStoryContent, generatePageImage, analyzePersonPhoto } from '../services/openRouterAPI';
 import { getApiKey } from '../services/storageService';
 
 export default function StoryCreator({ onClose, onStoryGenerated }) {
@@ -68,7 +68,7 @@ export default function StoryCreator({ onClose, onStoryGenerated }) {
             let characterDescription = null;
             try {
                 // Add 15-second timeout to prevent hanging
-                const analysisPromise = analyzeChildPhoto(photoPreview, childName, apiKey);
+                const analysisPromise = analyzePersonPhoto(photoPreview, childName, apiKey);
                 const timeoutPromise = new Promise((_, reject) =>
                     setTimeout(() => reject(new Error('Character analysis timeout')), 15000)
                 );

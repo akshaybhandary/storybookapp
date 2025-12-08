@@ -265,13 +265,13 @@ QUALITY STANDARD: Write as if this will be professionally published. Every sente
  * Analyze child's photo to extract detailed character description
  * This ensures consistency across all generated images
  */
-export async function analyzeChildPhoto(photoBase64, childName, apiKey) {
-    logger.info('CHARACTER', 'Analyzing child photo for character consistency');
+export async function analyzePersonPhoto(photoBase64, personName, apiKey) {
+    logger.info('CHARACTER', 'Analyzing person photo for character consistency');
 
     try {
         const endpoint = getCompletionsEndpoint();
 
-        const analysisPrompt = `Analyze this photo of a child named ${childName} and provide a VERY detailed character description that can be used consistently across multiple children's book illustrations.
+        const analysisPrompt = `Analyze this photo of a person named ${personName} and provide a VERY detailed character description that can be used consistently across multiple illustrations.
 
 CRITICAL: Pay special attention to hair - it MUST remain exactly the same in all illustrations!
 
