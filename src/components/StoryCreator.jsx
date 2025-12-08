@@ -77,45 +77,42 @@ export default function StoryCreator({ onClose, onStoryGenerated }) {
             incrementProgress();
 
 
-            // Step 3: Generate ALL illustrations in parallel (MUCH FASTER!)
+            // Step 3: Generate illustrations SEQUENTIALLY (avoids 26s Netlify timeout)
             setLoadingText('Creating beautiful illustrations...');
 
-            // Prepare all image generation promises
-            const imagePromises = [];
             let completedImages = 0;
             const totalImages = storyContent.pages.length + 1; // +1 for cover
 
-            // Helper to track progress
-            const trackImageCompletion = (promise) => {
-                return promise.then(result => {
-                    completedImages++;
-                    const imageProgress = 30 + Math.round((completedImages / totalImages) * 65); // 30% to 95%
-                    setProgress(imageProgress);
-                    setLoadingText(`Illustrated ${completedImages} of ${totalImages} pages...`);
-                    return result;
-                });
-            };
+            // Store generated pages
+            const pages = [];
+            setProgress(30); // Start at 30% (after story generation)
 
-            // Cover image
-            imagePromises.push(
-                trackImageCompletion(
-                    generatePageImage(
-                        `Create a stunning storybook cover illustration for "${storyContent.title}". The cover should show ${childName} as the main character in an exciting pose or scene that captures the essence of the story. Style: vibrant, child-friendly, professional children's book cover art. Include magical elements, wonder, and adventure. Make it eye-catching and inviting.`,
-                        0,
-                        photoPreview,
-                        childName,
-                        characterDescription,
-                        {
-                            characterOutfit: storyContent.characterOutfit,
-                            locations: storyContent.locations,
-                            currentLocation: storyContent.locations?.[0] || 'magical setting',
-                            characters: storyContent.characters || {}
-                        }
-                    ).then(url => ({ pageNumber: 0, text: '', image: url, isCover: true }))
-                )
-            );
+            // Generate COVER image first (sequential to avoid timeouts)
+            setLoadingText('Creating cover illustration...');
+            try {
+                const coverUrl = await generatePageImage(
+                    `Create a stunning storybook cover illustration for "${storyContent.title}". The cover should show ${childName} as the main character in an exciting pose or scene that captures the essence of the story. Style: vibrant, child-friendly, professional children's book cover art. Include magical elements, wonder, and adventure. Make it eye-catching and inviting.`,
+                    0,
+                    photoPreview,
+                    childName,
+                    characterDescription,
+                    {
+                        characterOutfit: storyContent.characterOutfit,
+                        locations: storyContent.locations,
+                        currentLocation: storyContent.locations?.[0] || 'magical setting',
+                        characters: storyContent.characters || {}
+                    }
+                );
+                pages.push({ pageNumber: 0, text: '', image: coverUrl, isCover: true });
+                completedImages++;
+                setProgress(30 + Math.round((completedImages / totalImages) * 65));
+            } catch (error) {
+                console.warn('Cover generation failed:', error.message);
+                pages.push({ pageNumber: 0, text: '', image: null, isCover: true });
+                completedImages++;
+            }
 
-            // Story page images
+            // Generate story page images SEQUENTIALLY (avoids 26s timeout per request)
             for (let i = 0; i < storyContent.pages.length; i++) {
                 const pageData = storyContent.pages[i];
                 const storyContext = {
@@ -125,27 +122,35 @@ export default function StoryCreator({ onClose, onStoryGenerated }) {
                     characters: storyContent.characters || {}
                 };
 
-                imagePromises.push(
-                    trackImageCompletion(
-                        generatePageImage(
-                            pageData.imagePrompt,
-                            i + 1,
-                            photoPreview,
-                            childName,
-                            characterDescription,
-                            storyContext
-                        ).then(url => ({
-                            pageNumber: pageData.pageNumber,
-                            text: pageData.text,
-                            image: url
-                        }))
-                    )
-                );
-            }
+                setLoadingText(`Illustrating page ${i + 1} of ${storyContent.pages.length}...`);
 
-            // Generate all images at once!
-            setProgress(30); // Start at 30% (after story generation)
-            const pages = await Promise.all(imagePromises);
+                try {
+                    const imageUrl = await generatePageImage(
+                        pageData.imagePrompt,
+                        i + 1,
+                        photoPreview,
+                        childName,
+                        characterDescription,
+                        storyContext
+                    );
+                    pages.push({
+                        pageNumber: pageData.pageNumber,
+                        text: pageData.text,
+                        image: imageUrl
+                    });
+                } catch (error) {
+                    console.warn(`Page ${i + 1} image failed:`, error.message);
+                    pages.push({
+                        pageNumber: pageData.pageNumber,
+                        text: pageData.text,
+                        image: null
+                    });
+                }
+
+                completedImages++;
+                const imageProgress = 30 + Math.round((completedImages / totalImages) * 65);
+                setProgress(imageProgress);
+            }
 
             setProgress(100);
             setLoadingText('Putting it all together...');
