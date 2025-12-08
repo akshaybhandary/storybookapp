@@ -70,11 +70,48 @@ export const handler = async (event, context) => {
 
     // POST request - Start a new job
     if (event.httpMethod === 'POST') {
-        const body = JSON.parse(event.body);
+        // Parse body with error handling
+        let body;
+        try {
+            body = JSON.parse(event.body || '{}');
+        } catch (parseError) {
+            console.error('Body parse error:', parseError);
+            return {
+                statusCode: 400,
+                headers,
+                body: JSON.stringify({ error: 'Invalid JSON body', details: parseError.message })
+            };
+        }
+
         const { action, ...requestData } = body;
+
+        // Check for API key early
+        const apiKey = process.env.OPENROUTER_API_KEY;
+        if (!apiKey) {
+            console.error('OPENROUTER_API_KEY not found in environment');
+            return {
+                statusCode: 500,
+                headers,
+                body: JSON.stringify({
+                    error: 'API key not configured',
+                    debug: 'Set OPENROUTER_API_KEY in Netlify environment variables'
+                })
+            };
+        }
 
         if (action === 'generate_images') {
             const jobId = `job_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+            // Validate required data
+            if (!requestData.imagePrompts || !Array.isArray(requestData.imagePrompts)) {
+                return {
+                    statusCode: 400,
+                    headers,
+                    body: JSON.stringify({ error: 'Missing or invalid imagePrompts array' })
+                };
+            }
+
+            console.log(`Starting job ${jobId} with ${requestData.imagePrompts.length} images`);
 
             // Initialize job
             jobs.set(jobId, {
@@ -87,7 +124,7 @@ export const handler = async (event, context) => {
             });
 
             // Start background processing (don't await!)
-            processImagesInBackground(jobId, requestData).catch(err => {
+            processImagesInBackground(jobId, requestData, apiKey).catch(err => {
                 console.error(`Job ${jobId} failed:`, err);
                 const job = jobs.get(jobId);
                 if (job) {
@@ -111,7 +148,7 @@ export const handler = async (event, context) => {
         return {
             statusCode: 400,
             headers,
-            body: JSON.stringify({ error: 'Unknown action' })
+            body: JSON.stringify({ error: 'Unknown action. Use action: "generate_images"' })
         };
     }
 
@@ -125,13 +162,9 @@ export const handler = async (event, context) => {
 /**
  * Background image generation - generates all images in parallel
  */
-async function processImagesInBackground(jobId, data) {
+async function processImagesInBackground(jobId, data, apiKey) {
     const { imagePrompts, storyContext, childPhoto, childName, characterDescription } = data;
-    const apiKey = process.env.OPENROUTER_API_KEY;
 
-    if (!apiKey) {
-        throw new Error('OPENROUTER_API_KEY not configured');
-    }
 
     const job = jobs.get(jobId);
     if (!job) return;
