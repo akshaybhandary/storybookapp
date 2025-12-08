@@ -145,10 +145,63 @@ export function getApiKey() {
 
 export function setApiKey(apiKey) {
     if (apiKey) {
-        localStorage.setItem('openrouter_api_key', apiKey);
+        localStorage.setItem('google_api_key', apiKey);
         logger.info('STORAGE', 'API key saved', { keyLength: apiKey.length });
         return true;
     }
     logger.warn('STORAGE', 'Attempted to save empty API key');
+    return false;
+}
+
+/**
+ * Get/Set OpenRouter API Key
+ */
+export function getOpenRouterKey() {
+    // In production, serverless function handles API key
+    if (import.meta.env.PROD) {
+        return null;
+    }
+
+    const localKey = localStorage.getItem('openrouter_api_key');
+    if (localKey) {
+        logger.debug('STORAGE', 'OpenRouter key from localStorage', { hasKey: true });
+        return localKey;
+    }
+
+    const envKey = import.meta.env.VITE_OPENROUTER_API_KEY;
+    if (envKey) {
+        logger.debug('STORAGE', 'OpenRouter key from .env file', { hasKey: true });
+        return envKey;
+    }
+
+    logger.debug('STORAGE', 'No OpenRouter key found');
+    return null;
+}
+
+export function setOpenRouterKey(apiKey) {
+    if (apiKey) {
+        localStorage.setItem('openrouter_api_key', apiKey);
+        logger.info('STORAGE', 'OpenRouter key saved', { keyLength: apiKey.length });
+        return true;
+    }
+    logger.warn('STORAGE', 'Attempted to save empty OpenRouter key');
+    return false;
+}
+
+/**
+ * Get/Set AI Provider (google or openrouter)
+ */
+export function getAIProvider() {
+    const provider = localStorage.getItem('ai_provider');
+    logger.debug('STORAGE', 'Get AI provider', { provider: provider || 'default' });
+    return provider || 'openrouter';
+}
+
+export function setAIProvider(provider) {
+    if (provider) {
+        localStorage.setItem('ai_provider', provider);
+        logger.info('STORAGE', 'AI provider saved', { provider });
+        return true;
+    }
     return false;
 }
