@@ -1,6 +1,59 @@
 // OpenRouter API Service
 import logger from '../utils/logger';
 
+/**
+ * Retry utility with exponential backoff
+ * Retries transient errors, fails fast on permanent errors
+ */
+async function retryWithBackoff(fn, options = {}) {
+    const {
+        maxRetries = 2,
+        initialDelay = 1000,
+        maxDelay = 5000,
+        shouldRetry = (error) => {
+            // Don't retry these permanent errors
+            if (error.message.includes('402') || error.message.includes('credits')) return false;
+            if (error.message.includes('401') || error.message.includes('API key')) return false;
+            if (error.message.includes('403') || error.message.includes('forbidden')) return false;
+            if (error.message.includes('400') || error.message.includes('invalid')) return false;
+
+            // Retry these transient errors
+            if (error.message.includes('429') || error.message.includes('rate limit')) return true;
+            if (error.message.includes('timeout')) return true;
+            if (error.message.includes('503') || error.message.includes('502')) return true;
+            if (error.message.includes('network')) return true;
+
+            // Default: retry on 500 errors, don't retry on 4xx
+            return error.message.includes('500');
+        }
+    } = options;
+
+    let lastError;
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+            return await fn();
+        } catch (error) {
+            lastError = error;
+
+            // Check if we should retry
+            if (attempt < maxRetries && shouldRetry(error)) {
+                const delay = Math.min(initialDelay * Math.pow(2, attempt), maxDelay);
+                logger.warn('API', `Request failed, retrying in ${delay}ms (attempt ${attempt + 1}/${maxRetries})`, {
+                    error: error.message
+                });
+                await new Promise(resolve => setTimeout(resolve, delay));
+                continue;
+            }
+
+            // Don't retry - throw immediately
+            throw error;
+        }
+    }
+
+    throw lastError;
+}
+
 // Use Netlify serverless function in production, direct API in development
 const isProduction = import.meta.env.PROD;
 const API_BASE_URL = isProduction
@@ -136,10 +189,14 @@ QUALITY STANDARD: Write as if this will be professionally published. Every sente
         });
 
         const fetchStart = performance.now();
-        const response = await fetch(endpoint, {
-            method: 'POST',
-            headers: getHeaders(apiKey),
-            body: JSON.stringify(requestBody)
+
+        // Wrap fetch in retry logic
+        const response = await retryWithBackoff(async () => {
+            return await fetch(endpoint, {
+                method: 'POST',
+                headers: getHeaders(apiKey),
+                body: JSON.stringify(requestBody)
+            });
         });
 
         const fetchDuration = performance.now() - fetchStart;
@@ -247,28 +304,30 @@ Respond with a JSON object:
     "shortDescription": "Brief 1-sentence description for quick reference"
 }`;
 
-        const response = await fetch(endpoint, {
-            method: 'POST',
-            headers: getHeaders(apiKey),
-            body: JSON.stringify({
-                model: 'google/gemini-2.5-flash',
-                messages: [
-                    {
-                        role: 'user',
-                        content: [
-                            {
-                                type: 'image_url',
-                                image_url: { url: photoBase64 }
-                            },
-                            {
-                                type: 'text',
-                                text: analysisPrompt
-                            }
-                        ]
-                    }
-                ],
-                response_format: { type: 'json_object' }
-            })
+        const response = await retryWithBackoff(async () => {
+            return await fetch(endpoint, {
+                method: 'POST',
+                headers: getHeaders(apiKey),
+                body: JSON.stringify({
+                    model: 'google/gemini-2.5-flash',
+                    messages: [
+                        {
+                            role: 'user',
+                            content: [
+                                {
+                                    type: 'image_url',
+                                    image_url: { url: photoBase64 }
+                                },
+                                {
+                                    type: 'text',
+                                    text: analysisPrompt
+                                }
+                            ]
+                        }
+                    ],
+                    response_format: { type: 'json_object' }
+                })
+            });
         });
 
         if (!response.ok) {
@@ -429,10 +488,14 @@ Quality: High quality, detailed, professional.`;
         });
 
         const fetchStart = performance.now();
-        const response = await fetch(endpoint, {
-            method: 'POST',
-            headers: getHeaders(apiKey),
-            body: JSON.stringify(requestBody)
+
+        // Wrap image generation in retry logic
+        const response = await retryWithBackoff(async () => {
+            return await fetch(endpoint, {
+                method: 'POST',
+                headers: getHeaders(apiKey),
+                body: JSON.stringify(requestBody)
+            });
         });
 
         const fetchDuration = performance.now() - fetchStart;
