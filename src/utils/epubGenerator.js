@@ -60,25 +60,29 @@ export async function generateEPUB(story) {
         }
     }
 
+    // Identify cover page
+    const coverPage = pages.find(p => p.isCover);
+    const storyPages = pages.filter(p => !p.isCover);
+
     // Generate content.opf (package document)
-    const contentOpf = generateContentOpf(story, imageManifest);
+    const contentOpf = generateContentOpf(story, imageManifest, coverPage);
     oebps.file('content.opf', contentOpf);
 
     // Generate toc.ncx (navigation)
-    const tocNcx = generateTocNcx(story);
+    const tocNcx = generateTocNcx(story, storyPages);
     oebps.file('toc.ncx', tocNcx);
 
     // Generate CSS
     const css = generateCSS();
     oebps.file('styles.css', css);
 
-    // Title page
-    const titlePageHtml = generateTitlePage(story);
+    // Title page (with cover)
+    const titlePageHtml = generateTitlePage(story, coverPage);
     oebps.file('title.xhtml', titlePageHtml);
 
-    // Story pages
-    for (let i = 0; i < pages.length; i++) {
-        const page = pages[i];
+    // Story pages (excluding cover)
+    for (let i = 0; i < storyPages.length; i++) {
+        const page = storyPages[i];
         const pageHtml = generateStoryPage(page, i + 1, story.title);
         oebps.file(`page${i + 1}.xhtml`, pageHtml);
     }
@@ -95,9 +99,19 @@ export async function generateEPUB(story) {
     saveAs(blob, filename);
 }
 
-function generateContentOpf(story, imageManifest = []) {
-    const pages = story.pages || [];
-    const pageCount = pages.length;
+function generateContentOpf(story, imageManifest = [], coverPage = null) {
+    const pages = story.pages?.filter(p => !p.isCover) || [];
+
+    // Find cover image ID for meta tag
+    let coverImageId = '';
+    if (coverPage && (coverPage.imageRef || coverPage.image)) {
+        // Find mainifest item that matches the cover image path
+        const coverItem = imageManifest.find(img =>
+            img.href === coverPage.imageRef ||
+            (coverPage.imageRef && img.href.endsWith(coverPage.imageRef))
+        );
+        if (coverItem) coverImageId = coverItem.id;
+    }
 
     return `<?xml version="1.0" encoding="UTF-8"?>
 <package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="bookid">
@@ -108,6 +122,7 @@ function generateContentOpf(story, imageManifest = []) {
         <dc:language>en</dc:language>
         <dc:date>${new Date().toISOString().split('T')[0]}</dc:date>
         <meta property="dcterms:modified">${new Date().toISOString().split('.')[0]}Z</meta>
+        ${coverImageId ? `<meta name="cover" content="${coverImageId}" />` : ''}
     </metadata>
     <manifest>
         <item id="ncx" href="toc.ncx" media-type="application/x-dtbncx+xml"/>
@@ -117,7 +132,7 @@ function generateContentOpf(story, imageManifest = []) {
         `<item id="page${i + 1}" href="page${i + 1}.xhtml" media-type="application/xhtml+xml"/>`
     ).join('\n        ')}
         ${imageManifest.map(img =>
-        `<item id="${img.id}" href="${img.href}" media-type="${img.mediaType}"/>`
+        `<item id="${img.id}" href="${img.href}" media-type="${img.mediaType}" ${img.id === coverImageId ? 'properties="cover-image"' : ''}/>`
     ).join('\n        ')}
     </manifest>
     <spine toc="ncx">
@@ -127,8 +142,11 @@ function generateContentOpf(story, imageManifest = []) {
 </package>`;
 }
 
-function generateTocNcx(story) {
-    const pages = story.pages || [];
+function generateTocNcx(story, storyPages = []) {
+    if (!storyPages.length && story.pages) {
+        // Fallback if not passed (though it should be)
+        storyPages = story.pages.filter(p => !p.isCover);
+    }
 
     return `<?xml version="1.0" encoding="UTF-8"?>
 <ncx xmlns="http://www.daisy.org/z3986/2005/ncx/" version="2005-1">
@@ -146,7 +164,7 @@ function generateTocNcx(story) {
             <navLabel><text>Title Page</text></navLabel>
             <content src="title.xhtml"/>
         </navPoint>
-        ${pages.map((page, i) => `
+        ${storyPages.map((page, i) => `
         <navPoint id="page${i + 1}" playOrder="${i + 2}">
             <navLabel><text>Page ${i + 1}</text></navLabel>
             <content src="page${i + 1}.xhtml"/>
@@ -206,10 +224,26 @@ h1, h2, h3 {
     color: #666;
     margin-top: 2em;
 }
+
+.cover-image-container {
+    margin-bottom: 2em;
+    text-align: center;
+    width: 100%;
+}
+
+.cover-image {
+    max-width: 100%;
+    max-height: 60vh;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    border-radius: 4px;
+}
 `;
 }
 
-function generateTitlePage(story) {
+function generateTitlePage(story, coverPage = null) {
+    const coverImageHtml = coverPage && (coverPage.imageRef || coverPage.image) ?
+        `<div class="cover-image-container"><img src="${coverPage.imageRef || coverPage.image}" alt="Cover Illustration" class="cover-image" /></div>` : '';
+
     return `<?xml version="1.0" encoding="UTF-8"?>
 <html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops">
 <head>
@@ -218,6 +252,7 @@ function generateTitlePage(story) {
 </head>
 <body>
     <div class="title-page">
+        ${coverImageHtml}
         <h1>${escapeXml(story.title)}</h1>
         <p style="font-style: italic; color: #666;">Created with StoryBook Magic</p>
     </div>
