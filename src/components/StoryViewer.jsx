@@ -2,10 +2,15 @@ import { useState, useEffect } from 'react';
 import { saveStory, isStorySaved } from '../services/storageService';
 import { generateEPUB } from '../utils/epubGenerator';
 
-export default function StoryViewer({ story, onClose, onStorySaved }) {
+export default function StoryViewer({ story, onClose, onStorySaved, isGenerating = false }) {
     const [currentPage, setCurrentPage] = useState(0);
     const [isSaved, setIsSaved] = useState(false);
     const [isGeneratingEbook, setIsGeneratingEbook] = useState(false);
+
+    // Calculate generation progress for loading indicator
+    const totalPages = story.pages?.length || 0;
+    const loadedPages = story.pages?.filter(p => !p.isLoading).length || 0;
+    const generationProgress = totalPages > 0 ? Math.round((loadedPages / totalPages) * 100) : 0;
 
     useEffect(() => {
         setIsSaved(isStorySaved(story.id));
@@ -54,15 +59,25 @@ export default function StoryViewer({ story, onClose, onStorySaved }) {
 
                 <div className="storybook-viewer">
                     <div className="storybook-header">
-                        <h2>{story.title}</h2>
+                        <h2>
+                            {story.title}
+                            {isGenerating && (
+                                <span className="generation-badge">
+                                    ✨ Generating images... {generationProgress}%
+                                </span>
+                            )}
+                        </h2>
                         <div className="action-buttons">
                             <button
                                 className={`action-btn save-story-btn ${isSaved ? 'saved' : ''}`}
                                 onClick={handleSave}
-                                disabled={isSaved}
+                                disabled={isSaved || isGenerating}
+                                title={isGenerating ? 'Wait for images to finish generating' : ''}
                             >
                                 {isSaved ? (
                                     <>✓ Saved</>
+                                ) : isGenerating ? (
+                                    <>⏳ Generating...</>
                                 ) : (
                                     <>
                                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -74,7 +89,7 @@ export default function StoryViewer({ story, onClose, onStorySaved }) {
                                     </>
                                 )}
                             </button>
-                            <button className="action-btn" onClick={handlePrint}>
+                            <button className="action-btn" onClick={handlePrint} disabled={isGenerating}>
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                     <path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"></path>
                                     <path d="M6 14h12v8H6z"></path>
@@ -84,7 +99,7 @@ export default function StoryViewer({ story, onClose, onStorySaved }) {
                             <button
                                 className="action-btn ebook-btn"
                                 onClick={handleDownloadEbook}
-                                disabled={isGeneratingEbook}
+                                disabled={isGeneratingEbook || isGenerating}
                             >
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                     <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
@@ -107,7 +122,19 @@ export default function StoryViewer({ story, onClose, onStorySaved }) {
                                         style={{ display: index === currentPage ? 'flex' : 'none' }}
                                     >
                                         <div className="book-cover-page">
-                                            <img src={page.image} alt="Book Cover" className="cover-illustration" />
+                                            {page.isLoading ? (
+                                                <div className="page-loading-spinner">
+                                                    <div className="spinner"></div>
+                                                    <p>Creating cover illustration...</p>
+                                                </div>
+                                            ) : page.image ? (
+                                                <img src={page.image} alt="Book Cover" className="cover-illustration" />
+                                            ) : (
+                                                <div className="placeholder-illustration cover-placeholder">
+                                                    <div className="placeholder-icon">📚</div>
+                                                    <div className="placeholder-label">Cover</div>
+                                                </div>
+                                            )}
                                             <div className="cover-overlay">
                                                 <h1 className="cover-title">{story.title}</h1>
                                                 <p className="cover-subtitle">Starring {story.childName}</p>
@@ -133,7 +160,12 @@ export default function StoryViewer({ story, onClose, onStorySaved }) {
                                     <div className={`book-page left-page ${isEvenPage ? 'image-page' : 'text-page'}`}>
                                         {isEvenPage ? (
                                             // Image on left
-                                            page.image ? (
+                                            page.isLoading ? (
+                                                <div className="page-loading-spinner">
+                                                    <div className="spinner"></div>
+                                                    <p>Creating illustration...</p>
+                                                </div>
+                                            ) : page.image ? (
                                                 <img src={page.image} alt={`Page ${page.pageNumber}`} className="book-illustration" />
                                             ) : (
                                                 <div className="placeholder-illustration" style={{
@@ -162,7 +194,12 @@ export default function StoryViewer({ story, onClose, onStorySaved }) {
                                             </div>
                                         ) : (
                                             // Image on right for odd pages
-                                            page.image ? (
+                                            page.isLoading ? (
+                                                <div className="page-loading-spinner">
+                                                    <div className="spinner"></div>
+                                                    <p>Creating illustration...</p>
+                                                </div>
+                                            ) : page.image ? (
                                                 <img src={page.image} alt={`Page ${page.pageNumber}`} className="book-illustration" />
                                             ) : (
                                                 <div className="placeholder-illustration" style={{

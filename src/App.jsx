@@ -37,6 +37,26 @@ function App() {
     openModal('viewer');
   };
 
+  // Called when a page image is generated (for progressive loading)
+  const handlePageUpdate = (pageNumber, imageUrl, isComplete = false) => {
+    setCurrentStory(prev => {
+      if (!prev) return prev;
+
+      const updatedPages = prev.pages.map(page => {
+        if (page.pageNumber === pageNumber) {
+          return { ...page, image: imageUrl, isLoading: false };
+        }
+        return page;
+      });
+
+      return {
+        ...prev,
+        pages: updatedPages,
+        isGenerating: !isComplete
+      };
+    });
+  };
+
   const handleStorySaved = () => {
     updateLibraryCount();
   };
@@ -65,6 +85,7 @@ function App() {
         <StoryCreator
           onClose={closeModal}
           onStoryGenerated={handleStoryGenerated}
+          onPageUpdate={handlePageUpdate}
         />
       )}
 
@@ -73,6 +94,7 @@ function App() {
           story={currentStory}
           onClose={closeModal}
           onStorySaved={handleStorySaved}
+          isGenerating={currentStory.isGenerating || false}
         />
       )}
 

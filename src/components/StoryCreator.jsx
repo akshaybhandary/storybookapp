@@ -60,7 +60,7 @@ async function generateImagesSequentially(storyContent, photoPreview, childName,
     return pages;
 }
 
-export default function StoryCreator({ onClose, onStoryGenerated }) {
+export default function StoryCreator({ onClose, onStoryGenerated, onPageUpdate }) {
     const [step, setStep] = useState(1);
     const [photo, setPhoto] = useState(null);
     const [photoPreview, setPhotoPreview] = useState(null);
@@ -102,92 +102,105 @@ export default function StoryCreator({ onClose, onStoryGenerated }) {
 
         try {
             const pageCount = length === 'short' ? 5 : 10;
-            const totalSteps = pageCount + 2; // Analysis + Story + Pages
-            let currentStep = 0;
 
-            const incrementProgress = () => {
-                currentStep++;
-                setProgress(Math.min(Math.round((currentStep / totalSteps) * 100), 95));
+            // Step 1 & 2: Parallelize photo analysis AND story generation for speed!
+            setLoadingText('Preparing your magical story...');
+
+            const [characterDescription, storyContent] = await Promise.all([
+                // Photo analysis (with timeout, non-blocking failure)
+                analyzePersonPhoto(photoPreview, childName)
+                    .catch(err => {
+                        console.warn('Character analysis skipped:', err.message);
+                        return null;
+                    }),
+                // Story generation
+                generateStoryContent(childName, storyPrompt, pageCount)
+            ]);
+
+            setProgress(25);
+            setLoadingText('Story created! Starting illustrations...');
+
+            // Create story shell with placeholder pages (all marked as loading)
+            const coverPage = {
+                pageNumber: 0,
+                text: '',
+                image: null,
+                isCover: true,
+                isLoading: true
             };
 
-
-            // Step 1: Analyze the child's photo (with timeout to prevent hanging)
-            setLoadingText('Getting to know your little star...');
-            let characterDescription = null;
-            try {
-                // Add 15-second timeout to prevent hanging
-                const analysisPromise = analyzePersonPhoto(photoPreview, childName);
-                const timeoutPromise = new Promise((_, reject) =>
-                    setTimeout(() => reject(new Error('Character analysis timeout')), 15000)
-                );
-
-                characterDescription = await Promise.race([analysisPromise, timeoutPromise]);
-            } catch (error) {
-                console.warn('Character analysis skipped or failed:', error.message);
-                // Continue without character analysis if it times out
-                characterDescription = null;
-            }
-            incrementProgress();
-
-            // Step 2: Generate the story content
-            setLoadingText('Crafting your magical story...');
-            const storyContent = await generateStoryContent(childName, storyPrompt, pageCount);
-            incrementProgress();
-
-
-            // Step 3: Generate illustrations
-            setLoadingText('Creating beautiful illustrations...');
-            setProgress(30);
-
-            let pages = [];
-
-            // Use background function in production (parallel, faster)
-            // Use sequential in development (no background function available)
-            if (isBackgroundGenerationAvailable()) {
-                // Production: Parallel generation via background function (up to 15 min)
-                setLoadingText('Generating all illustrations in parallel...');
-                try {
-                    pages = await generateImagesInBackground(
-                        storyContent,
-                        photoPreview,
-                        childName,
-                        characterDescription,
-                        (progress, message) => {
-                            // Update UI with background job progress
-                            setProgress(30 + Math.round(progress * 0.65)); // 30% to 95%
-                            setLoadingText(message || 'Generating images...');
-                        }
-                    );
-                } catch (error) {
-                    console.error('Background generation failed, falling back to sequential:', error);
-                    // Fall back to sequential generation
-                    pages = await generateImagesSequentially(
-                        storyContent, photoPreview, childName, characterDescription,
-                        setProgress, setLoadingText
-                    );
-                }
-            } else {
-                // Development: Sequential generation (each call < 26s)
-                pages = await generateImagesSequentially(
-                    storyContent, photoPreview, childName, characterDescription,
-                    setProgress, setLoadingText
-                );
-            }
-
-            setProgress(100);
-            setLoadingText('Putting it all together...');
-            await new Promise(resolve => setTimeout(resolve, 800)); // Show 100% briefly
+            const storyPages = storyContent.pages.map(page => ({
+                pageNumber: page.pageNumber,
+                text: page.text,
+                image: null,
+                isLoading: true
+            }));
 
             const story = {
                 id: Date.now().toString(),
                 title: storyContent.title,
                 childName: childName,
-                pages: pages,
+                pages: [coverPage, ...storyPages],
                 createdAt: new Date().toISOString(),
-                saved: false
+                saved: false,
+                isGenerating: true  // Flag for viewer to show generation in progress
             };
 
+            // Show story viewer IMMEDIATELY with loading placeholders!
             onStoryGenerated(story);
+
+            // Now generate images one-by-one, updating each page as it completes
+            const totalImages = storyContent.pages.length + 1;
+            let completedImages = 0;
+
+            // Generate cover first
+            try {
+                const coverUrl = await generatePageImage(
+                    `Create a stunning storybook cover illustration for "${storyContent.title}". The cover should show ${childName} as the main character in an exciting pose or scene that captures the essence of the story. Style: vibrant, child-friendly, professional children's book cover art.`,
+                    0, photoPreview, childName, characterDescription,
+                    {
+                        characterOutfit: storyContent.characterOutfit,
+                        locations: storyContent.locations,
+                        currentLocation: storyContent.locations?.[0] || 'magical setting',
+                        characters: storyContent.characters || {}
+                    }
+                );
+                completedImages++;
+                onPageUpdate(0, coverUrl, completedImages === totalImages);
+            } catch (error) {
+                console.warn('Cover generation failed:', error.message);
+                completedImages++;
+                onPageUpdate(0, null, completedImages === totalImages);
+            }
+
+            // Generate story pages one-by-one
+            for (let i = 0; i < storyContent.pages.length; i++) {
+                const pageData = storyContent.pages[i];
+
+                try {
+                    const imageUrl = await generatePageImage(
+                        pageData.imagePrompt,
+                        pageData.pageNumber,
+                        photoPreview,
+                        childName,
+                        characterDescription,
+                        {
+                            characterOutfit: storyContent.characterOutfit,
+                            locations: storyContent.locations,
+                            currentLocation: pageData.location,
+                            characters: storyContent.characters || {}
+                        }
+                    );
+                    completedImages++;
+                    onPageUpdate(pageData.pageNumber, imageUrl, completedImages === totalImages);
+                } catch (error) {
+                    console.warn(`Page ${pageData.pageNumber} image failed:`, error.message);
+                    completedImages++;
+                    onPageUpdate(pageData.pageNumber, null, completedImages === totalImages);
+                }
+            }
+
+            // All done! (viewer will update isGenerating: false from the last onPageUpdate)
 
         } catch (error) {
             console.error('Error generating story:', error);
