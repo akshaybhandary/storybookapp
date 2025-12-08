@@ -10,6 +10,7 @@ export default function StoryCreator({ onClose, onStoryGenerated }) {
     const [storyPrompt, setStoryPrompt] = useState('');
     const [length, setLength] = useState('short');
     const [loadingText, setLoadingText] = useState('');
+    const [error, setError] = useState(null);
 
     const handleFileChange = (e) => {
         const file = e.target.files[0];
@@ -342,6 +343,38 @@ export default function StoryCreator({ onClose, onStoryGenerated }) {
                                 }}>
                                     ⏱️ This might take 4-5 minutes. Please don't close your browser!
                                 </p>
+                            </div>
+                        </div>
+                    )}
+
+                    {step === 4 && error && (
+                        <div className="creator-step">
+                            <h3 className="step-title" style={{ color: '#ff6b6b' }}>
+                                ❌ {error.title || 'Something went wrong'}
+                            </h3>
+                            <div style={{
+                                background: 'rgba(255, 107, 107, 0.1)',
+                                border: '1px solid rgba(255, 107, 107, 0.3)',
+                                borderRadius: '12px',
+                                padding: '1.5rem',
+                                marginTop: '1rem',
+                                textAlign: 'left'
+                            }}>
+                                <p style={{ whiteSpace: 'pre-wrap', marginBottom: '1rem' }}>
+                                    {error.message}
+                                </p>
+                            </div>
+                            <div className="button-group" style={{ marginTop: '2rem' }}>
+                                <button className="back-btn" onClick={onClose}>
+                                    ← Back to Home
+                                </button>
+                                <button className="generate-btn" onClick={() => {
+                                    setError(null);
+                                    setStep(2);
+                                    setProgress(0);
+                                }}>
+                                    Try Again
+                                </button>
                             </div>
                         </div>
                     )}
