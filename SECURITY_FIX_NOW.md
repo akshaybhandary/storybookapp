@@ -4,7 +4,7 @@
 
 You noticed this in your browser's Network tab:
 ```
-https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=AIzaSyDZMUd3RNAlhcyzu2dF3GzotENXnYoI6no
+https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=YOUR_API_KEY_HERE
 ```
 
 **This is a critical security issue!** Anyone can:
@@ -44,8 +44,8 @@ In the terminal running `npm run dev`, press `Ctrl+C`
 ### Step 2: Make Sure Your .env Has the Right Variable
 Your `.env` file needs **both** of these:
 ```env
-VITE_GOOGLE_API_KEY=AIzaSyDZMUd3RNAlhcyzu2dF3GzotENXnYoI6no
-GOOGLE_API_KEY=AIzaSyDZMUd3RNAlhcyzu2dF3GzotENXnYoI6no
+VITE_GOOGLE_API_KEY=YOUR_API_KEY_HERE
+GOOGLE_API_KEY=YOUR_API_KEY_HERE
 ```
 
 - `VITE_GOOGLE_API_KEY` - Used in development mode (insecure)

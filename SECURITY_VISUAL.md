@@ -88,7 +88,7 @@
 
 **Insecure mode (bad):**
 ```
-Request URL: https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=AIzaSyDZM...
+Request URL: https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=YOUR_KEY_EXPOSED
                                                                                                     ^^^^^^^^
                                                                                            🚨 KEY EXPOSED!
 ```
