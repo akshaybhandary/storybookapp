@@ -33,17 +33,6 @@ export default function StoryCreator({ onClose, onStoryGenerated }) {
     const [progress, setProgress] = useState(0);
 
     const handleGenerate = async () => {
-        // In production, serverless function handles API key
-        // Only check for key in development mode
-        const isProduction = import.meta.env.PROD;
-        const apiKey = getApiKey();
-
-        if (!isProduction && !apiKey) {
-            alert('Please set your Google AI Studio API key in settings');
-            onClose();
-            return;
-        }
-
         if (!childName || !storyPrompt) {
             alert('Please fill in all fields');
             return;
@@ -68,7 +57,7 @@ export default function StoryCreator({ onClose, onStoryGenerated }) {
             let characterDescription = null;
             try {
                 // Add 15-second timeout to prevent hanging
-                const analysisPromise = analyzePersonPhoto(photoPreview, childName, apiKey);
+                const analysisPromise = analyzePersonPhoto(photoPreview, childName);
                 const timeoutPromise = new Promise((_, reject) =>
                     setTimeout(() => reject(new Error('Character analysis timeout')), 15000)
                 );
@@ -83,7 +72,7 @@ export default function StoryCreator({ onClose, onStoryGenerated }) {
 
             // Step 2: Generate the story content
             setLoadingText('Crafting your magical story...');
-            const storyContent = await generateStoryContent(childName, storyPrompt, pageCount, apiKey);
+            const storyContent = await generateStoryContent(childName, storyPrompt, pageCount);
             incrementProgress();
 
 
@@ -111,7 +100,6 @@ export default function StoryCreator({ onClose, onStoryGenerated }) {
                 trackImageCompletion(
                     generatePageImage(
                         `Create a stunning storybook cover illustration for "${storyContent.title}". The cover should show ${childName} as the main character in an exciting pose or scene that captures the essence of the story. Style: vibrant, child-friendly, professional children's book cover art. Include magical elements, wonder, and adventure. Make it eye-catching and inviting.`,
-                        apiKey,
                         0,
                         photoPreview,
                         childName,
@@ -140,7 +128,6 @@ export default function StoryCreator({ onClose, onStoryGenerated }) {
                     trackImageCompletion(
                         generatePageImage(
                             pageData.imagePrompt,
-                            apiKey,
                             i + 1,
                             photoPreview,
                             childName,
