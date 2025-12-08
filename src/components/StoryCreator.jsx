@@ -62,9 +62,23 @@ export default function StoryCreator({ onClose, onStoryGenerated }) {
                 setProgress(Math.min(Math.round((currentStep / totalSteps) * 100), 95));
             };
 
-            // Step 1: Analyze the child's photo for consistent character description
+
+            // Step 1: Analyze the child's photo (with timeout to prevent hanging)
             setLoadingText('Getting to know your little star...');
-            const characterDescription = await analyzeChildPhoto(photoPreview, childName, apiKey);
+            let characterDescription = null;
+            try {
+                // Add 15-second timeout to prevent hanging
+                const analysisPromise = analyzeChildPhoto(photoPreview, childName, apiKey);
+                const timeoutPromise = new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error('Character analysis timeout')), 15000)
+                );
+
+                characterDescription = await Promise.race([analysisPromise, timeoutPromise]);
+            } catch (error) {
+                console.warn('Character analysis skipped or failed:', error.message);
+                // Continue without character analysis if it times out
+                characterDescription = null;
+            }
             incrementProgress();
 
             // Step 2: Generate the story content
