@@ -119,7 +119,7 @@ QUALITY STANDARD: Write as if this will be professionally published. Every sente
     try {
         const endpoint = getCompletionsEndpoint();
         const requestBody = {
-            model: 'google/gemini-3-pro-preview',
+            model: 'google/gemini-2.5-flash',
             messages: [
                 {
                     role: 'user',
@@ -251,7 +251,7 @@ Respond with a JSON object:
             method: 'POST',
             headers: getHeaders(apiKey),
             body: JSON.stringify({
-                model: 'google/gemini-3-pro-preview',
+                model: 'google/gemini-2.5-flash',
                 messages: [
                     {
                         role: 'user',
