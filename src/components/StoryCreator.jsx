@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { generateStoryContent, generatePageImage, analyzePersonPhoto } from '../services/openRouterAPI';
-import { getApiKey } from '../services/storageService';
+import { generateStoryContent, generatePageImage, analyzePersonPhoto } from '../services/aiProvider';
+import { getCurrentProvider } from '../services/aiProvider';
 
 export default function StoryCreator({ onClose, onStoryGenerated }) {
     const [step, setStep] = useState(1);
@@ -39,7 +39,7 @@ export default function StoryCreator({ onClose, onStoryGenerated }) {
         const apiKey = getApiKey();
 
         if (!isProduction && !apiKey) {
-            alert('Please set your OpenRouter API key in settings (only needed for local development)');
+            alert('Please set your Google AI Studio API key in settings');
             onClose();
             return;
         }
@@ -199,7 +199,7 @@ export default function StoryCreator({ onClose, onStoryGenerated }) {
                 errorMessage = 'Too many requests. Please wait a moment before trying again.';
             } else if (error.message.includes('credits') || error.message.includes('402')) {
                 errorTitle = 'Insufficient Credits';
-                errorMessage = 'Your OpenRouter account needs more credits. Please add credits at openrouter.ai';
+                errorMessage = 'API quota exceeded. Check your usage at aistudio.google.com';
             }
 
             setError({ title: errorTitle, message: errorMessage });

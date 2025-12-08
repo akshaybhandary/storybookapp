@@ -27,10 +27,10 @@ export default function Settings({ onClose }) {
 
                 <div className="settings-content">
                     <h3 className="step-title">API Settings</h3>
-                    <p className="step-description">Configure your OpenRouter API key</p>
+                    <p className="step-description">Configure your Google AI Studio API key</p>
 
                     <div className="form-group">
-                        <label htmlFor="apiKey">OpenRouter API Key</label>
+                        <label htmlFor="apiKey">Google AI Studio API Key</label>
                         <input
                             type="password"
                             id="apiKey"
@@ -39,7 +39,7 @@ export default function Settings({ onClose }) {
                             placeholder="sk-or-v1-..."
                         />
                         <small className="form-hint">
-                            Get your API key from <a href="https://openrouter.ai/keys" target="_blank" rel="noopener noreferrer">OpenRouter</a>
+                            Get your FREE API key from <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer">Google AI Studio</a>
                         </small>
                     </div>
 
