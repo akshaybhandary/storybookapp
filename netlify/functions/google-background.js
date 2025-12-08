@@ -1,6 +1,5 @@
 // Netlify Background Function - For long-running story generation (up to 15 minutes)
-const fetch = require('node-fetch');
-const { schedule } = require('@netlify/functions');
+// Node 18+ has native fetch, no need for node-fetch
 
 const API_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta';
 

@@ -1,5 +1,5 @@
 // Netlify Function - Secure proxy for Google AI Studio API
-const fetch = require('node-fetch');
+// Node 18+ has native fetch, no need for node-fetch
 
 const API_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta';
 
