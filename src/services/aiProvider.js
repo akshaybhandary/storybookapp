@@ -32,8 +32,16 @@ export function switchProvider(provider) {
 
 /**
  * Get the appropriate API key for the current provider
+ * In production, returns null (Netlify function handles it)
+ * In development, checks localStorage and env vars
  */
 function getProviderApiKey() {
+    // In production, serverless functions handle API keys
+    // No need to check on the client side
+    if (import.meta.env.PROD) {
+        return null; // Will be handled by Netlify function
+    }
+
     const provider = getCurrentProvider();
 
     if (provider === AI_PROVIDERS.GOOGLE) {
@@ -41,6 +49,13 @@ function getProviderApiKey() {
     } else {
         return getOpenRouterKey(); // OpenRouter key
     }
+}
+
+/**
+ * Check if API key is required (only in development)
+ */
+function isApiKeyRequired() {
+    return !import.meta.env.PROD;
 }
 
 /**
@@ -67,7 +82,9 @@ export async function generateStoryContent(childName, storyPrompt, pageCount, on
     logger.info('PROVIDER', 'Generating story', { provider, pageCount });
 
     try {
-        if (!apiKey) {
+        // Only check for API key in development mode
+        // In production, Netlify functions handle the key
+        if (isApiKeyRequired() && !apiKey) {
             throw new Error(`Please set your ${provider === AI_PROVIDERS.GOOGLE ? 'Google AI Studio' : 'OpenRouter'} API key in settings`);
         }
 
@@ -89,7 +106,7 @@ export async function analyzePersonPhoto(photoBase64, personName) {
     logger.info('PROVIDER', 'Analyzing photo', { provider });
 
     try {
-        if (!apiKey) {
+        if (isApiKeyRequired() && !apiKey) {
             throw new Error(`Please set your ${provider === AI_PROVIDERS.GOOGLE ? 'Google AI Studio' : 'OpenRouter'} API key in settings`);
         }
 
@@ -116,7 +133,7 @@ export async function generatePageImage(
     const api = getProviderAPI();
 
     try {
-        if (!apiKey) {
+        if (isApiKeyRequired() && !apiKey) {
             throw new Error(`Please set your ${provider === AI_PROVIDERS.GOOGLE ? 'Google AI Studio' : 'OpenRouter'} API key in settings`);
         }
 
