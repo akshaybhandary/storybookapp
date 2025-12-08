@@ -1,6 +1,64 @@
 import { useState } from 'react';
 import { generateStoryContent, generatePageImage, analyzePersonPhoto } from '../services/aiProvider';
 import { getCurrentProvider } from '../services/aiProvider';
+import { generateImagesInBackground, isBackgroundGenerationAvailable } from '../services/backgroundGenerator';
+
+/**
+ * Generate images sequentially (for development or fallback)
+ * Each API call stays under 26s Netlify timeout
+ */
+async function generateImagesSequentially(storyContent, photoPreview, childName, characterDescription, setProgress, setLoadingText) {
+    const pages = [];
+    const totalImages = storyContent.pages.length + 1;
+    let completedImages = 0;
+
+    // Cover image
+    setLoadingText('Creating cover illustration...');
+    try {
+        const coverUrl = await generatePageImage(
+            `Create a stunning storybook cover illustration for "${storyContent.title}". The cover should show ${childName} as the main character in an exciting pose or scene that captures the essence of the story. Style: vibrant, child-friendly, professional children's book cover art.`,
+            0, photoPreview, childName, characterDescription,
+            {
+                characterOutfit: storyContent.characterOutfit,
+                locations: storyContent.locations,
+                currentLocation: storyContent.locations?.[0] || 'magical setting',
+                characters: storyContent.characters || {}
+            }
+        );
+        pages.push({ pageNumber: 0, text: '', image: coverUrl, isCover: true });
+    } catch (error) {
+        console.warn('Cover generation failed:', error.message);
+        pages.push({ pageNumber: 0, text: '', image: null, isCover: true });
+    }
+    completedImages++;
+    setProgress(30 + Math.round((completedImages / totalImages) * 65));
+
+    // Story pages
+    for (let i = 0; i < storyContent.pages.length; i++) {
+        const pageData = storyContent.pages[i];
+        setLoadingText(`Illustrating page ${i + 1} of ${storyContent.pages.length}...`);
+
+        try {
+            const imageUrl = await generatePageImage(
+                pageData.imagePrompt, i + 1, photoPreview, childName, characterDescription,
+                {
+                    characterOutfit: storyContent.characterOutfit,
+                    locations: storyContent.locations,
+                    currentLocation: pageData.location,
+                    characters: storyContent.characters || {}
+                }
+            );
+            pages.push({ pageNumber: pageData.pageNumber, text: pageData.text, image: imageUrl });
+        } catch (error) {
+            console.warn(`Page ${i + 1} image failed:`, error.message);
+            pages.push({ pageNumber: pageData.pageNumber, text: pageData.text, image: null });
+        }
+        completedImages++;
+        setProgress(30 + Math.round((completedImages / totalImages) * 65));
+    }
+
+    return pages;
+}
 
 export default function StoryCreator({ onClose, onStoryGenerated }) {
     const [step, setStep] = useState(1);
@@ -77,79 +135,43 @@ export default function StoryCreator({ onClose, onStoryGenerated }) {
             incrementProgress();
 
 
-            // Step 3: Generate illustrations SEQUENTIALLY (avoids 26s Netlify timeout)
+            // Step 3: Generate illustrations
             setLoadingText('Creating beautiful illustrations...');
+            setProgress(30);
 
-            let completedImages = 0;
-            const totalImages = storyContent.pages.length + 1; // +1 for cover
+            let pages = [];
 
-            // Store generated pages
-            const pages = [];
-            setProgress(30); // Start at 30% (after story generation)
-
-            // Generate COVER image first (sequential to avoid timeouts)
-            setLoadingText('Creating cover illustration...');
-            try {
-                const coverUrl = await generatePageImage(
-                    `Create a stunning storybook cover illustration for "${storyContent.title}". The cover should show ${childName} as the main character in an exciting pose or scene that captures the essence of the story. Style: vibrant, child-friendly, professional children's book cover art. Include magical elements, wonder, and adventure. Make it eye-catching and inviting.`,
-                    0,
-                    photoPreview,
-                    childName,
-                    characterDescription,
-                    {
-                        characterOutfit: storyContent.characterOutfit,
-                        locations: storyContent.locations,
-                        currentLocation: storyContent.locations?.[0] || 'magical setting',
-                        characters: storyContent.characters || {}
-                    }
-                );
-                pages.push({ pageNumber: 0, text: '', image: coverUrl, isCover: true });
-                completedImages++;
-                setProgress(30 + Math.round((completedImages / totalImages) * 65));
-            } catch (error) {
-                console.warn('Cover generation failed:', error.message);
-                pages.push({ pageNumber: 0, text: '', image: null, isCover: true });
-                completedImages++;
-            }
-
-            // Generate story page images SEQUENTIALLY (avoids 26s timeout per request)
-            for (let i = 0; i < storyContent.pages.length; i++) {
-                const pageData = storyContent.pages[i];
-                const storyContext = {
-                    characterOutfit: storyContent.characterOutfit,
-                    locations: storyContent.locations,
-                    currentLocation: pageData.location,
-                    characters: storyContent.characters || {}
-                };
-
-                setLoadingText(`Illustrating page ${i + 1} of ${storyContent.pages.length}...`);
-
+            // Use background function in production (parallel, faster)
+            // Use sequential in development (no background function available)
+            if (isBackgroundGenerationAvailable()) {
+                // Production: Parallel generation via background function (up to 15 min)
+                setLoadingText('Generating all illustrations in parallel...');
                 try {
-                    const imageUrl = await generatePageImage(
-                        pageData.imagePrompt,
-                        i + 1,
+                    pages = await generateImagesInBackground(
+                        storyContent,
                         photoPreview,
                         childName,
                         characterDescription,
-                        storyContext
+                        (progress, message) => {
+                            // Update UI with background job progress
+                            setProgress(30 + Math.round(progress * 0.65)); // 30% to 95%
+                            setLoadingText(message || 'Generating images...');
+                        }
                     );
-                    pages.push({
-                        pageNumber: pageData.pageNumber,
-                        text: pageData.text,
-                        image: imageUrl
-                    });
                 } catch (error) {
-                    console.warn(`Page ${i + 1} image failed:`, error.message);
-                    pages.push({
-                        pageNumber: pageData.pageNumber,
-                        text: pageData.text,
-                        image: null
-                    });
+                    console.error('Background generation failed, falling back to sequential:', error);
+                    // Fall back to sequential generation
+                    pages = await generateImagesSequentially(
+                        storyContent, photoPreview, childName, characterDescription,
+                        setProgress, setLoadingText
+                    );
                 }
-
-                completedImages++;
-                const imageProgress = 30 + Math.round((completedImages / totalImages) * 65);
-                setProgress(imageProgress);
+            } else {
+                // Development: Sequential generation (each call < 26s)
+                pages = await generateImagesSequentially(
+                    storyContent, photoPreview, childName, characterDescription,
+                    setProgress, setLoadingText
+                );
             }
 
             setProgress(100);
