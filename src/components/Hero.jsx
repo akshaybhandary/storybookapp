@@ -79,7 +79,7 @@ export default function Hero({ onCreateStory }) {
                     </div>
                     <div className="trust-badge">
                         <span className="trust-icon">🚚</span>
-                        <span>Ships Worldwide</span>
+                        <span>Shipping to US, Canada & UK</span>
                     </div>
                 </div>
             </div>
