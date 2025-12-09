@@ -3,7 +3,6 @@ import Hero from './components/Hero';
 import StoryCreator from './components/StoryCreator';
 import StoryViewer from './components/StoryViewer';
 import Library from './components/Library';
-import Settings from './components/Settings';
 import Navbar from './components/Navbar';
 import { getSavedStories } from './services/storageService';
 import './index.css';
@@ -12,6 +11,17 @@ function App() {
   const [activeModal, setActiveModal] = useState(null);
   const [currentStory, setCurrentStory] = useState(null);
   const [libraryCount, setLibraryCount] = useState(0);
+  const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark');
+
+  useEffect(() => {
+    // Apply theme to document
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+  };
 
   useEffect(() => {
     // Update library count on mount
@@ -72,12 +82,14 @@ function App() {
       <Navbar
         onCreateStory={() => openModal('creator')}
         onOpenLibrary={() => openModal('library')}
-        onOpenSettings={() => openModal('settings')}
         libraryCount={libraryCount}
+        theme={theme}
+        onToggleTheme={toggleTheme}
+        showNavLinks={!activeModal}
       />
 
       {/* Show Hero only when no full-page view is active */}
-      {(!activeModal || activeModal === 'library' || activeModal === 'settings') && (
+      {(!activeModal || activeModal === 'library') && (
         <Hero onCreateStory={() => openModal('creator')} />
       )}
 
@@ -106,9 +118,7 @@ function App() {
         />
       )}
 
-      {activeModal === 'settings' && (
-        <Settings onClose={closeModal} />
-      )}
+
     </div>
   );
 }

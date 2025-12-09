@@ -74,12 +74,12 @@ function getProviderAPI() {
 /**
  * Generate story content - automatically routes to correct provider
  */
-export async function generateStoryContent(childName, storyPrompt, pageCount, onProgress = null) {
+export async function generateStoryContent(childName, storyPrompt, pageCount, childAge, onProgress = null) {
     const provider = getCurrentProvider();
     const apiKey = getProviderApiKey();
     const api = getProviderAPI();
 
-    logger.info('PROVIDER', 'Generating story', { provider, pageCount });
+    logger.info('PROVIDER', 'Generating story', { provider, pageCount, childAge });
 
     try {
         // Only check for API key in development mode
@@ -88,7 +88,7 @@ export async function generateStoryContent(childName, storyPrompt, pageCount, on
             throw new Error(`Please set your ${provider === AI_PROVIDERS.GOOGLE ? 'Google AI Studio' : 'OpenRouter'} API key in settings`);
         }
 
-        return await api.generateStoryContent(childName, storyPrompt, pageCount, apiKey, onProgress);
+        return await api.generateStoryContent(childName, storyPrompt, pageCount, apiKey, childAge, onProgress);
     } catch (error) {
         logger.error('PROVIDER', `Story generation failed with ${provider}`, error);
         throw error;
@@ -98,19 +98,19 @@ export async function generateStoryContent(childName, storyPrompt, pageCount, on
 /**
  * Analyze person photo - automatically routes to correct provider
  */
-export async function analyzePersonPhoto(photoBase64, personName) {
+export async function analyzePersonPhoto(photoBase64, personName, childAge) {
     const provider = getCurrentProvider();
     const apiKey = getProviderApiKey();
     const api = getProviderAPI();
 
-    logger.info('PROVIDER', 'Analyzing photo', { provider });
+    logger.info('PROVIDER', 'Analyzing photo', { provider, childAge });
 
     try {
         if (isApiKeyRequired() && !apiKey) {
             throw new Error(`Please set your ${provider === AI_PROVIDERS.GOOGLE ? 'Google AI Studio' : 'OpenRouter'} API key in settings`);
         }
 
-        return await api.analyzePersonPhoto(photoBase64, personName, apiKey);
+        return await api.analyzePersonPhoto(photoBase64, personName, apiKey, childAge);
     } catch (error) {
         logger.error('PROVIDER', `Photo analysis failed with ${provider}`, error);
         throw error;
@@ -126,7 +126,8 @@ export async function generatePageImage(
     childPhoto = null,
     childName = '',
     characterDescription = null,
-    storyContext = null
+    storyContext = null,
+    childAge = null
 ) {
     const provider = getCurrentProvider();
     const apiKey = getProviderApiKey();
@@ -144,7 +145,8 @@ export async function generatePageImage(
             childPhoto,
             childName,
             characterDescription,
-            storyContext
+            storyContext,
+            childAge
         );
     } catch (error) {
         logger.error('PROVIDER', `Image generation failed with ${provider} on page ${pageNumber}`, error);

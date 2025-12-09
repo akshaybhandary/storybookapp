@@ -37,19 +37,6 @@ export default function Hero({ onCreateStory }) {
             <div className="stars2"></div>
             <div className="stars3"></div>
 
-            {/* Navbar */}
-            <nav className="navbar">
-                <div className="nav-brand">
-                    <span className="magic-wand">✨</span>
-                    <h1>StoryBook Magic</h1>
-                </div>
-                <div className="nav-links">
-                    <a href="#how-it-works" className="nav-link">How It Works</a>
-                    <a href="#pricing" className="nav-link">Pricing</a>
-                    <a href="#gallery" className="nav-link">Gallery</a>
-                </div>
-            </nav>
-
             {/* Hero Content */}
             <div className="hero-content">
                 <div className="hero-badge">
@@ -86,10 +73,6 @@ export default function Hero({ onCreateStory }) {
                 </div>
 
                 <div className="trust-badges">
-                    <div className="trust-badge">
-                        <span className="trust-icon">📚</span>
-                        <span>10,000+ Books Created</span>
-                    </div>
                     <div className="trust-badge">
                         <span className="trust-icon">⭐</span>
                         <span>4.9/5 Rating</span>

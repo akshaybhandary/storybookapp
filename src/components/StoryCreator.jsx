@@ -23,7 +23,8 @@ async function generateImagesSequentially(storyContent, photoPreview, childName,
                 locations: storyContent.locations,
                 currentLocation: storyContent.locations?.[0] || 'magical setting',
                 characters: storyContent.characters || {}
-            }
+            },
+            storyContent.childAge || '4-8'
         );
         pages.push({ pageNumber: 0, text: '', image: coverUrl, isCover: true });
     } catch (error) {
@@ -65,6 +66,7 @@ export default function StoryCreator({ onClose, onStoryGenerated, onPageUpdate }
     const [photo, setPhoto] = useState(null);
     const [photoPreview, setPhotoPreview] = useState(null);
     const [childName, setChildName] = useState('');
+    const [childAge, setChildAge] = useState('');
     const [storyPrompt, setStoryPrompt] = useState('');
     const [length, setLength] = useState('short');
     const [loadingText, setLoadingText] = useState('');
@@ -92,7 +94,7 @@ export default function StoryCreator({ onClose, onStoryGenerated, onPageUpdate }
     const [progress, setProgress] = useState(0);
 
     const handleGenerate = async () => {
-        if (!childName || !storyPrompt) {
+        if (!childName || !storyPrompt || !childAge) {
             alert('Please fill in all fields');
             return;
         }
@@ -108,13 +110,13 @@ export default function StoryCreator({ onClose, onStoryGenerated, onPageUpdate }
 
             const [characterDescription, storyContent] = await Promise.all([
                 // Photo analysis (with timeout, non-blocking failure)
-                analyzePersonPhoto(photoPreview, childName)
+                analyzePersonPhoto(photoPreview, childName, childAge)
                     .catch(err => {
                         console.warn('Character analysis skipped:', err.message);
                         return null;
                     }),
                 // Story generation
-                generateStoryContent(childName, storyPrompt, pageCount)
+                generateStoryContent(childName, storyPrompt, pageCount, childAge)
             ]);
 
             setProgress(25);
@@ -159,11 +161,11 @@ export default function StoryCreator({ onClose, onStoryGenerated, onPageUpdate }
                     `Create a stunning storybook cover illustration for "${storyContent.title}". The cover should show ${childName} as the main character in an exciting pose or scene that captures the essence of the story. Style: vibrant, child-friendly, professional children's book cover art.`,
                     0, photoPreview, childName, characterDescription,
                     {
-                        characterOutfit: storyContent.characterOutfit,
                         locations: storyContent.locations,
                         currentLocation: storyContent.locations?.[0] || 'magical setting',
                         characters: storyContent.characters || {}
-                    }
+                    },
+                    childAge
                 );
                 completedImages++;
                 onPageUpdate(0, coverUrl, completedImages === totalImages);
@@ -185,11 +187,10 @@ export default function StoryCreator({ onClose, onStoryGenerated, onPageUpdate }
                         childName,
                         characterDescription,
                         {
-                            characterOutfit: storyContent.characterOutfit,
-                            locations: storyContent.locations,
                             currentLocation: pageData.location,
                             characters: storyContent.characters || {}
-                        }
+                        },
+                        childAge
                     );
                     completedImages++;
                     onPageUpdate(pageData.pageNumber, imageUrl, completedImages === totalImages);
@@ -295,16 +296,31 @@ export default function StoryCreator({ onClose, onStoryGenerated, onPageUpdate }
                             <h3 className="step-title">Tell Us About Your Story</h3>
                             <p className="step-description">What magical adventure should we create?</p>
 
-                            <div className="form-group">
-                                <label htmlFor="childName">Child's Name</label>
-                                <input
-                                    type="text"
-                                    id="childName"
-                                    value={childName}
-                                    onChange={(e) => setChildName(e.target.value)}
-                                    placeholder="Enter hero's name"
-                                    required
-                                />
+                            <div className="form-row" style={{ display: 'flex', gap: '1rem' }}>
+                                <div className="form-group" style={{ flex: 1 }}>
+                                    <label htmlFor="childName">Child's Name</label>
+                                    <input
+                                        type="text"
+                                        id="childName"
+                                        value={childName}
+                                        onChange={(e) => setChildName(e.target.value)}
+                                        placeholder="Enter hero's name"
+                                        required
+                                    />
+                                </div>
+                                <div className="form-group" style={{ width: '120px' }}>
+                                    <label htmlFor="childAge">Age</label>
+                                    <input
+                                        type="number"
+                                        id="childAge"
+                                        value={childAge}
+                                        onChange={(e) => setChildAge(e.target.value)}
+                                        placeholder="Age"
+                                        min="1"
+                                        max="16"
+                                        required
+                                    />
+                                </div>
                             </div>
 
                             <div className="form-group">

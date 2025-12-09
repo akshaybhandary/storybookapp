@@ -85,18 +85,18 @@ const getHeaders = (apiKey) => {
 /**
  * Generate story content using Gemini
  */
-export async function generateStoryContent(childName, theme, pageCount, apiKey) {
+export async function generateStoryContent(childName, theme, pageCount, apiKey, childAge = '4-8') {
     const startTime = performance.now();
 
     logger.storyGenerationStart(childName, theme, pageCount);
-    logger.debug('STORY-GEN', 'Building prompt', { childName, themeLength: theme.length, pageCount });
+    logger.debug('STORY-GEN', 'Building prompt', { childName, themeLength: theme.length, pageCount, childAge });
 
-    const prompt = `You are an award-winning children's book author creating a premium storybook for a child named ${childName}.
+    const prompt = `You are an award-winning children's book author creating a premium storybook for a child named ${childName} who is ${childAge} years old.
 
 STORY DETAILS:
 - Theme: ${theme}
 - Pages: Exactly ${pageCount} pages
-- Target age: 4-8 years old
+- Target age: ${childAge} years old
 
 STORYTELLING EXCELLENCE REQUIREMENTS:
 
@@ -265,13 +265,13 @@ QUALITY STANDARD: Write as if this will be professionally published. Every sente
  * Analyze child's photo to extract detailed character description
  * This ensures consistency across all generated images
  */
-export async function analyzePersonPhoto(photoBase64, personName, apiKey) {
-    logger.info('CHARACTER', 'Analyzing person photo for character consistency');
+export async function analyzePersonPhoto(photoBase64, personName, apiKey, childAge = null) {
+    logger.info('CHARACTER', 'Analyzing person photo for character consistency', { childAge });
 
     try {
         const endpoint = getCompletionsEndpoint();
 
-        const analysisPrompt = `Analyze this photo of a person named ${personName} and provide a VERY detailed character description that can be used consistently across multiple illustrations.
+        const analysisPrompt = `Analyze this photo of a person named ${personName} ${childAge ? `(age: ${childAge})` : ''} and provide a VERY detailed character description that can be used consistently across multiple illustrations.
 
 CRITICAL: Pay special attention to hair - it MUST remain exactly the same in all illustrations!
 
@@ -372,7 +372,7 @@ Respond with a JSON object:
  * Uses gemini-2.5-flash-image for image generation
  * Includes child's photo, character description, and story context for consistency
  */
-export async function generatePageImage(imagePrompt, apiKey, pageNumber = 0, childPhoto = null, childName = '', characterDescription = null, storyContext = null) {
+export async function generatePageImage(imagePrompt, apiKey, pageNumber = 0, childPhoto = null, childName = '', characterDescription = null, storyContext = null, childAge = null) {
     const startTime = performance.now();
 
     logger.imageGenerationStart(pageNumber, imagePrompt);
@@ -392,7 +392,7 @@ CRITICAL - DO NOT CHANGE THESE:
   ${characterDescription.hairLength ? `  * Length: ${characterDescription.hairLength}` : ''}
   ${characterDescription.hairTexture ? `  * Texture: ${characterDescription.hairTexture}` : ''}
 - Eyes: ${characterDescription.eyeColor || 'match the reference photo'}
-- Age appearance: ${characterDescription.approximateAge || 'young child'}
+- Age appearance: ${childAge ? `${childAge} years old` : (characterDescription.approximateAge || 'young child')}
 ${characterDescription.distinctiveFeatures && characterDescription.distinctiveFeatures !== 'none' ? `- Distinctive features: ${characterDescription.distinctiveFeatures}` : ''}
 
 IMPORTANT: The hair MUST look exactly the same as in the reference photo and all other illustrations. Same color, same style, same length every single time!`;
