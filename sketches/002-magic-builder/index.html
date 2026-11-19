@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LumiFables — Magic Builder direction</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Fredoka', sans-serif; background: #17123A; color: #F4F1FF; line-height: 1.6; overflow-x: hidden; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 1.5rem; }
+
+  .stars { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+  .star { position: absolute; color: #FFD98E; animation: twinkle 2.4s ease-in-out infinite; font-size: 12px; }
+  @keyframes twinkle { 0%,100% { opacity: .25; } 50% { opacity: 1; } }
+
+  nav { display: flex; justify-content: space-between; align-items: center; padding: 1.25rem 0; position: relative; z-index: 2; }
+  .brand { font-size: 1.4rem; font-weight: 700; }
+  .brand span { color: #FFB86B; }
+  nav a { color: #BDB4E6; text-decoration: none; margin-left: 1.4rem; font-weight: 500; }
+  nav a:hover { color: #FFB86B; }
+
+  .hero { position: relative; z-index: 2; text-align: center; padding: 3rem 0 1rem; }
+  .hero h1 { font-size: clamp(2.2rem, 5vw, 3.4rem); line-height: 1.15; font-weight: 700; }
+  .hero h1 em { font-style: normal; background: linear-gradient(90deg, #FFB86B, #FF7EB6); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .hero p { color: #BDB4E6; max-width: 34rem; margin: 1rem auto 0; font-size: 1.08rem; }
+
+  /* THE BUILDER — the hero IS the product */
+  .builder { position: relative; z-index: 2; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12); backdrop-filter: blur(12px); border-radius: 24px; padding: 2rem; max-width: 760px; margin: 2.5rem auto; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1.1rem; }
+  .field label { display: block; font-size: .85rem; font-weight: 600; color: #CFC7F0; margin-bottom: .4rem; }
+  .field input { width: 100%; background: rgba(23,18,58,.7); border: 1.5px solid rgba(255,255,255,.14); color: #fff; border-radius: 12px; padding: .8rem 1rem; font-family: inherit; font-size: 1rem; outline: none; }
+  .field input:focus { border-color: #FFB86B; }
+  .dropzone { grid-column: 1 / -1; border: 2px dashed rgba(255,255,255,.25); border-radius: 16px; padding: 1.6rem; text-align: center; cursor: pointer; transition: all .2s ease; background: rgba(23,18,58,.4); }
+  .dropzone:hover { border-color: #FFB86B; background: rgba(255,184,107,.08); transform: translateY(-2px); }
+  .dropzone .icon { font-size: 2rem; }
+  .themes { grid-column: 1 / -1; }
+  .chips { display: flex; gap: .55rem; flex-wrap: wrap; }
+  .chip { border: 1.5px solid rgba(255,255,255,.18); background: rgba(23,18,58,.55); color: #D9D2F2; padding: .5rem 1.05rem; border-radius: 999px; cursor: pointer; font-family: inherit; font-size: .95rem; font-weight: 500; transition: all .15s ease; }
+  .chip:hover { border-color: #FF7EB6; }
+  .chip.active { background: linear-gradient(90deg, #FFB86B, #FF7EB6); color: #241B52; border-color: transparent; font-weight: 600; }
+  .go { grid-column: 1 / -1; background: linear-gradient(90deg, #FFB86B, #FF7EB6); color: #241B52; border: none; border-radius: 999px; padding: 1rem; font-size: 1.15rem; font-weight: 700; cursor: pointer; font-family: inherit; box-shadow: 0 14px 34px rgba(255,184,107,.35); transition: transform .15s ease; }
+  .go:hover { transform: translateY(-3px) scale(1.01); }
+  .tiny { text-align: center; font-size: .85rem; color: #9C92C7; margin-top: .8rem; }
+  #result { display: none; margin-top: 1.1rem; background: rgba(255,184,107,.12); border: 1px solid rgba(255,184,107,.4); border-radius: 14px; padding: 1.1rem; font-size: .98rem; }
+  #result b { color: #FFD98E; }
+
+  .marquee { position: relative; z-index: 2; text-align: center; padding: 1.5rem 0 3rem; color: #9C92C7; }
+  .marquee b { color: #FFD98E; }
+
+  section { position: relative; z-index: 2; padding: 3.5rem 0; }
+  .light { background: #F8F5FF; color: #2A2450; border-radius: 40px; }
+  .light h2 { text-align: center; font-size: 2rem; font-weight: 700; }
+  .light .sub { text-align: center; color: #7A70A8; margin-bottom: 2.2rem; }
+  .features { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.2rem; }
+  .feat { background: #fff; border-radius: 18px; padding: 1.4rem; box-shadow: 0 10px 26px rgba(42,36,80,.08); }
+  .feat .ic { font-size: 1.8rem; }
+  .feat h3 { font-size: 1.02rem; margin: .5rem 0 .3rem; }
+  .feat p { font-size: .88rem; color: #6B639A; }
+
+  .pricing { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.2rem; }
+  .card { background: #fff; border-radius: 20px; padding: 1.8rem; text-align: center; color: #2A2450; box-shadow: 0 10px 26px rgba(42,36,80,.08); }
+  .card.pop { outline: 3px solid #FFB86B; outline-offset: 2px; }
+  .price { font-size: 2.4rem; font-weight: 700; }
+  .card ul { list-style: none; font-size: .9rem; color: #6B639A; margin: .8rem 0 1.2rem; text-align: left; }
+  .card li { padding: .25rem 0 .25rem 1.3rem; position: relative; }
+  .card li::before { content: "✦"; position: absolute; left: 0; color: #FF7EB6; }
+  .card .btn { display: block; text-align: center; text-decoration: none; border-radius: 999px; padding: .7rem; font-weight: 700; background: #F0ECFF; color: #4A3F8C; }
+  .card.pop .btn { background: linear-gradient(90deg, #FFB86B, #FF7EB6); color: #241B52; }
+
+  footer { position: relative; z-index: 2; text-align: center; color: #9C92C7; padding: 2.5rem 0 3rem; font-size: .9rem; }
+  footer a { color: #BDB4E6; text-decoration: none; margin: 0 .7rem; }
+
+  @media (max-width: 820px) { .field-row { grid-template-columns: 1fr; } .features, .pricing { grid-template-columns: 1fr 1fr; } }
+</style>
+</head>
+<body>
+<div class="stars" id="sky"></div>
+<div class="wrap">
+  <nav>
+    <div class="brand">Lumi<span>Fables</span> ✨</div>
+    <div><a href="#pricing">Pricing</a><a href="#why">Why us</a><a href="#">My books</a></div>
+  </nav>
+
+  <div class="hero">
+    <h1>Make a storybook <em>starring your kid</em><br>— in the next 5 minutes</h1>
+    <p>Upload a photo, pick a theme, hit go. Free to make, free to read, pay only when you want it printed.</p>
+  </div>
+
+  <div class="builder">
+    <div class="field-row">
+      <div class="field"><label>CHILD'S NAME</label><input type="text" placeholder="e.g. Maya" id="name"></div>
+      <div class="field"><label>THEIR AGE</label><input type="text" placeholder="e.g. 5"></div>
+      <div class="dropzone" onclick="this.innerHTML='<div class=icon>📸</div><b>Photo uploaded!</b> — creating their character…'">
+        <div class="icon">📤</div>
+        <div><b>Drop their photo here</b> — one clear smile works best</div>
+      </div>
+      <div class="themes">
+        <label style="display:block;font-size:.85rem;font-weight:600;color:#CFC7F0;margin-bottom:.45rem;">PICK A THEME</label>
+        <div class="chips">
+          <button class="chip active" onclick="pick(this)">🚀 Space Voyage</button>
+          <button class="chip" onclick="pick(this)">👸 Princess Quest</button>
+          <button class="chip" onclick="pick(this)">🦖 Dinosaur World</button>
+          <button class="chip" onclick="pick(this)">🧜 Ocean Adventure</button>
+          <button class="chip" onclick="pick(this)">🐉 Dragon Rescue</button>
+          <button class="chip" onclick="pick(this)">⚽ Sports Star</button>
+        </div>
+      </div>
+      <button class="go" onclick="makeBook()">✨ Make my book — it's free</button>
+      <div class="tiny">🔒 Photo stays private · No account needed · Free preview before you pay</div>
+      <div id="result">✨ <b id="booktitle"></b></div>
+    </div>
+  </div>
+
+  <div class="marquee">🎁 <b>82% of books</b> are made as gifts · 🚚 Ships US, CA & UK · 📖 Read the whole book before paying</div>
+
+  <section class="light" id="why">
+    <h2>Why parents pick LumiFables</h2>
+    <p class="sub">The AI that actually keeps your child's face on every page.</p>
+    <div class="features">
+      <div class="feat"><div class="ic">🧒</div><h3>Looks like THEM</h3><p>Their face, hair and smile carry through every page — not a generic kid.</p></div>
+      <div class="feat"><div class="ic">📖</div><h3>Your story, not a template</h3><p>Written around your idea: their birthday, their dog, their big-kid bed.</p></div>
+      <div class="feat"><div class="ic">🔒</div><h3>Private by default</h3><p>Photo used to draw the book, then deleted on request. Never sold, never trained on.</p></div>
+      <div class="feat"><div class="ic">⚡</div><h3>5 minutes, really</h3><p>No account, no design skills. Preview the finished book before paying a cent.</p></div>
+    </div>
+    <br>
+    <div class="pricing" id="pricing">
+      <div class="card"><h3>Digital</h3><div class="price">$12</div><ul><li>High-res PDF</li><li>Instant download</li><li>Print at home</li></ul><a class="btn" href="#">Make it free</a></div>
+      <div class="card pop"><h3>Hardcover ⭐</h3><div class="price">$39</div><ul><li>8.5" × 8.5" glossy hardcover</li><li>Gift-ready box</li><li>PDF included</li></ul><a class="btn" href="#">Make it free</a></div>
+      <div class="card"><h3>Softcover</h3><div class="price">$29</div><ul><li>Matte softcover</li><li>PDF included</li></ul><a class="btn" href="#">Make it free</a></div>
+    </div>
+  </section>
+
+  <footer>© 2026 LumiFables · <a href="#">Privacy</a><a href="#">Terms</a><a href="#">Contact</a></footer>
+</div>
+<script>
+  // Twinkling stars
+  const sky = document.getElementById('sky');
+  for (let i = 0; i < 40; i++) {
+    const s = document.createElement('div');
+    s.className = 'star'; s.textContent = '✦';
+    s.style.left = Math.random()*100 + '%';
+    s.style.top = Math.random()*100 + '%';
+    s.style.animationDelay = Math.random()*2.4 + 's';
+    s.style.fontSize = (8 + Math.random()*10) + 'px';
+    sky.appendChild(s);
+  }
+  function pick(el) {
+    document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+    el.classList.add('active');
+  }
+  function makeBook() {
+    const name = (document.getElementById('name').value || 'Maya').trim();
+    const theme = document.querySelector('.chip.active').textContent.trim();
+    document.getElementById('booktitle').textContent =
+      `Great choice! "${name}'s ${theme.replace(/^\S+\s/,'')}" is being illustrated — your free preview will be ready in about 4 minutes.`;
+    document.getElementById('result').style.display = 'block';
+  }
+</script>
+</body>
+</html>

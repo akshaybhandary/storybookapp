@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LumiFables — Gift Engine direction</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Nunito', sans-serif; background: #FFFDF7; color: #33302B; line-height: 1.6; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 1.5rem; }
+  h1, h2, h3, .brand, .price { font-family: 'Fredoka', sans-serif; }
+
+  /* urgency strip */
+  .urgency { background: #E8452B; color: #fff; text-align: center; padding: .55rem 1rem; font-size: .92rem; font-weight: 700; }
+  .urgency b { text-decoration: underline; }
+
+  nav { display: flex; justify-content: space-between; align-items: center; padding: 1rem 0; }
+  .brand { font-size: 1.35rem; font-weight: 700; }
+  .brand span { color: #E8452B; }
+  nav .links a { color: #6B675F; text-decoration: none; margin-left: 1.3rem; font-weight: 700; font-size: .95rem; }
+  nav .links a.buy { background: #E8452B; color: #fff; padding: .55rem 1.15rem; border-radius: 999px; }
+
+  .hero { display: grid; grid-template-columns: 1.15fr 1fr; gap: 2.5rem; align-items: center; padding: 2.5rem 0 3rem; }
+  .hero h1 { font-size: clamp(2rem, 4.6vw, 3rem); line-height: 1.16; font-weight: 700; }
+  .hero h1 span { color: #E8452B; }
+  .hero .lead { color: #6B675F; font-size: 1.08rem; margin: 1rem 0 1.5rem; }
+  .hero .stats { display: flex; gap: 2rem; margin-top: 1.5rem; }
+  .stat b { font-family: 'Fredoka'; font-size: 1.5rem; color: #33302B; display: block; }
+  .stat span { font-size: .82rem; color: #9A948A; }
+  .cta { background: #E8452B; color: #fff; border-radius: 999px; padding: 1rem 1.9rem; font-weight: 800; font-size: 1.05rem; border: none; cursor: pointer; font-family: 'Nunito'; box-shadow: 0 12px 26px rgba(232,69,43,.3); transition: transform .15s; }
+  .cta:hover { transform: translateY(-2px); }
+  .hero-img { background: linear-gradient(150deg, #FFE8D2, #FFD6B3); border-radius: 20px; min-height: 320px; display: grid; place-items: center; font-size: 4rem; box-shadow: 0 18px 40px rgba(51,48,43,.1); }
+
+  /* occasion tabs */
+  .occasions { background: #fff; border: 1px solid #F0EAE0; border-radius: 22px; padding: 2rem; }
+  .tabs { display: flex; gap: .5rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+  .tab { border: 1.5px solid #EAE3D8; background: #FFFDF7; color: #6B675F; padding: .6rem 1.2rem; border-radius: 999px; cursor: pointer; font-weight: 800; font-family: 'Nunito'; font-size: .95rem; transition: all .15s; }
+  .tab:hover { border-color: #E8452B; color: #E8452B; }
+  .tab.active { background: #E8452B; border-color: #E8452B; color: #fff; }
+  .occasion-panel { display: grid; grid-template-columns: 1fr 1fr auto; gap: 1.5rem; align-items: center; background: #FFF7EE; border-radius: 16px; padding: 1.5rem; }
+  .occasion-panel .story { font-family: 'Fredoka'; font-size: 1.25rem; font-weight: 600; }
+  .occasion-panel .desc { color: #6B675F; font-size: .95rem; margin-top: .3rem; }
+  .badge { display: inline-block; background: #FFE1D2; color: #C24314; font-size: .78rem; font-weight: 800; padding: .3rem .7rem; border-radius: 999px; margin-bottom: .5rem; }
+
+  .band { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; padding: 2.5rem 0; }
+  .band .b { background: #fff; border: 1px solid #F0EAE0; border-radius: 16px; padding: 1.2rem; text-align: center; }
+  .band .b .ic { font-size: 1.6rem; }
+  .band .b h3 { font-size: 1rem; margin: .4rem 0 .2rem; }
+  .band .b p { font-size: .84rem; color: #9A948A; }
+
+  /* comparison table */
+  .compare-section { padding: 2.5rem 0; }
+  h2 { font-size: 1.9rem; font-weight: 700; text-align: center; }
+  .sub { text-align: center; color: #9A948A; margin: .4rem 0 1.8rem; }
+  table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 18px; overflow: hidden; box-shadow: 0 12px 30px rgba(51,48,43,.06); }
+  th, td { padding: .95rem 1.2rem; text-align: left; font-size: .95rem; border-bottom: 1px solid #F4EEE4; }
+  th { background: #FFF7EE; font-family: 'Fredoka'; font-weight: 600; }
+  td:first-child { font-weight: 800; }
+  .us { color: #C24314; }
+  tr:last-child td { border-bottom: none; }
+  .yes { color: #2E9E4B; font-weight: 800; } .no { color: #C9C2B6; }
+
+  /* pricing + bundles */
+  .bundles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.2rem; padding: 2.5rem 0 3rem; }
+  .bundle { background: #fff; border: 1px solid #F0EAE0; border-radius: 20px; padding: 1.7rem; text-align: center; }
+  .bundle.hot { border: 2.5px solid #E8452B; position: relative; }
+  .bundle .tag { position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: #E8452B; color: #fff; padding: .25rem .9rem; border-radius: 999px; font-size: .78rem; font-weight: 800; }
+  .bundle h3 { font-size: 1.15rem; }
+  .price { font-size: 2.3rem; font-weight: 700; margin: .4rem 0; }
+  .bundle s { color: #C9C2B6; font-size: 1rem; }
+  .bundle ul { list-style: none; font-size: .92rem; color: #6B675F; margin: .8rem 0 1.2rem; }
+  .bundle li { padding: .25rem 0 .25rem 1.3rem; position: relative; text-align: left; }
+  .bundle li::before { content: "✓"; position: absolute; left: 0; color: #2E9E4B; font-weight: 800; }
+  .bundle .btn { display: block; text-align: center; text-decoration: none; border-radius: 999px; padding: .8rem; font-weight: 800; background: #FFF1E8; color: #C24314; }
+  .bundle.hot .btn { background: #E8452B; color: #fff; }
+
+  footer { text-align: center; color: #9A948A; padding: 2rem 0 2.5rem; font-size: .9rem; }
+  footer a { color: #6B675F; text-decoration: none; margin: 0 .7rem; }
+
+  @media (max-width: 860px) { .hero, .occasion-panel { grid-template-columns: 1fr; } .band { grid-template-columns: 1fr 1fr; } .bundles { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="urgency">🎄 <b>Order by Dec 15</b> for guaranteed Christmas delivery — shipped from US & UK printers</div>
+<div class="wrap">
+  <nav>
+    <div class="brand">Lumi<span>Fables</span></div>
+    <div class="links"><a href="#occasions">Occasions</a><a href="#compare">Compare</a><a href="#bundles">Bundles</a><a class="buy" href="#">Create a book</a></div>
+  </nav>
+
+  <div class="hero">
+    <div>
+      <h1>The gift that makes them say <span>"that's ME!"</span></h1>
+      <p class="lead">A real hardcover storybook where your child is the hero — drawn from their photo, written around your story, printed and shipped in days.</p>
+      <button class="cta" onclick="document.getElementById('occasions').scrollIntoView({behavior:'smooth'})">Find their occasion →</button>
+      <div class="hero-stats stats" style="display:flex;gap:2rem;margin-top:1.5rem;">
+        <div class="stat"><b>5 min</b><span>to create</span></div>
+        <div class="stat"><b>4–6 days</b><span>to their door</span></div>
+        <div class="stat"><b>$39</b><span>hardcover, all-in</span></div>
+      </div>
+    </div>
+    <div class="hero-img">📖→😲</div>
+  </div>
+
+  <div class="occasions" id="occasions">
+    <div class="tabs">
+      <button class="tab active" onclick="occ(this,'birthday')">🎂 Birthday</button>
+      <button class="tab" onclick="occ(this,'christmas')">🎄 Christmas</button>
+      <button class="tab" onclick="occ(this,'newbaby')">👶 New baby</button>
+      <button class="tab" onclick="occ(this,'milestone')">🎓 Milestones</button>
+      <button class="tab" onclick="occ(this,'justbecause')">💛 Just because</button>
+    </div>
+    <div class="occasion-panel" id="panel">
+      <div><span class="badge" id="badge">MOST POPULAR</span><div class="story" id="story">"The Birthday Dragon"</div></div>
+      <div class="desc" id="desc">A dragon loses its birthday cake, and your child — drawn from their photo — saves the day. Their name and age are woven into every page.</div>
+      <button class="cta" style="padding:.8rem 1.4rem;font-size:.95rem;">Make this book</button>
+    </div>
+  </div>
+
+  <div class="band">
+    <div class="b"><div class="ic">🧒</div><h3>Really them</h3><p>Photo → their illustrated character, on every page</p></div>
+    <div class="b"><div class="ic">📖</div><h3>Free full preview</h3><p>Read the finished book before paying anything</p></div>
+    <div class="b"><div class="ic">🔒</div><h3>Photos protected</h3><p>Used to draw, deleted on request — never sold</p></div>
+    <div class="b"><div class="ic">🚚</div><h3>Fast & tracked</h3><p>Printed in the US & UK, shipped in 4–6 days</p></div>
+  </div>
+
+  <div class="compare-section" id="compare">
+    <h2>How LumiFables stacks up</h2>
+    <p class="sub">Honest comparison — checked Oct 2026.</p>
+    <table>
+      <tr><th></th><th class="us">LumiFables</th><th>Wonderbly</th><th>Hooray Heroes</th></tr>
+      <tr><td>Child drawn from their photo</td><td class="us yes">✓ Real likeness</td><td class="no">— pick from presets</td><td class="no">— pick features</td></tr>
+      <tr><td>Your own story idea</td><td class="us yes">✓ Any idea</td><td class="no">— fixed stories</td><td class="no">— fixed stories</td></tr>
+      <tr><td>Whole-book free preview</td><td class="us yes">✓</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+      <tr><td>Hardcover price</td><td class="us"><b>$39 all-in</b></td><td>$44–55</td><td>$37–47</td></tr>
+      <tr><td>Made in minutes, not weeks</td><td class="us yes">✓ ~5 min</td><td class="no">— browse catalog</td><td class="no">— browse catalog</td></tr>
+    </table>
+  </div>
+
+  <div class="bundles" id="bundles">
+    <div class="bundle"><h3>One book</h3><div class="price">$39</div><s>$44</s><ul><li>1 hardcover of their story</li><li>Digital PDF included</li><li>Gift box</li></ul><a class="btn" href="#">Create</a></div>
+    <div class="bundle hot"><div class="tag">SIBLONS SAVE 20%</div><h3>Two siblings</h3><div class="price">$62</div><s>$78</s><ul><li>2 hardcovers, one shared adventure</li><li>Both kids as heroes</li><li>2 PDFs included</li></ul><a class="btn" href="#">Create</a></div>
+    <div class="bundle"><h3>Year of stories</h3><div class="price">$99/yr</div><ul><li>4 hardcovers a year</li><li>New seasonal story each quarter</li><li>Members get first-dibs holiday themes</li></ul><a class="btn" href="#">Join</a></div>
+  </div>
+
+  <footer>© 2026 LumiFables · <a href="#">Privacy</a><a href="#">Terms</a><a href="#">Contact</a> · hello@lumifables.com</footer>
+</div>
+<script>
+  const data = {
+    birthday: ["MOST POPULAR", "\"The Birthday Dragon\"", "A dragon loses its birthday cake, and your child — drawn from their photo — saves the day. Their name and age woven into every page."],
+    christmas: ["ORDER BY DEC 15", "\"The Night Santa Needed Help\"", "Santa's sleigh breaks down on YOUR street — and only your child can save Christmas morning. The #1 gift under the tree."],
+    newbaby: ["KEEPSAKE", "\"You Were Worth The Wait\"", "The story of how the whole world conspired to bring them home — the newest hero in the family. Perfect from the hospital."],
+    milestone: ["BIG MOMENTS", "\"The First Day of School\"", "Nervous tummy? This book shows them arriving brave, making friends, and owning the day — with their face on every page."],
+    justbecause: ["BEDTIME FAVORITE", "\"The Kid Who Fed The Moon\"", "Sometimes the best gift is a Tuesday bedtime story where they're the hero. They'll ask for this one every night."]
+  };
+  function occ(btn, key) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    const [badge, story, desc] = data[key];
+    document.getElementById('badge').textContent = badge;
+    document.getElementById('story').textContent = story;
+    document.getElementById('desc').textContent = desc;
+  }
+</script>
+</body>
+</html>

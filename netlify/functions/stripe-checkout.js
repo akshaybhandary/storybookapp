@@ -3,9 +3,13 @@
 //
 // Environment variables (set in Netlify → Site settings → Environment variables):
 //   STRIPE_SECRET_KEY              sk_live_... or sk_test_...
-//   STRIPE_PRICE_DIGITAL           price_...  ($9 PDF)
-//   STRIPE_PRICE_SOFTCOVER        price_...  ($19)
-//   STRIPE_PRICE_HARDCOVER        price_...  ($29)
+//   STRIPE_PRICE_DIGITAL           price_... or per-region: "US:price_a,CA:price_b,GB:price_c"
+//   STRIPE_PRICE_SOFTCOVER         same format
+//   STRIPE_PRICE_HARDCOVER         same format
+//
+// The client sends { tier, region } where region is US | CA | GB. Prices are
+// localized per region (USD/CAD/GBP), so configure one Stripe price per
+// currency. A bare price ID (no region prefix) is used for every region.
 //
 // Until those are set the function returns 501 and the UI shows a friendly
 // "coming soon" message, so it is safe to deploy this at any time.
@@ -15,6 +19,25 @@ const PRICE_ENV = {
     softcover: 'STRIPE_PRICE_SOFTCOVER',
     hardcover: 'STRIPE_PRICE_HARDCOVER'
 };
+
+const VALID_REGIONS = new Set(['US', 'CA', 'GB']);
+
+// Resolve the price ID for the given region. Supports both formats:
+//   "price_123"                       → same ID for every region
+//   "US:price_1,CA:price_2,GB:price_3" → per-region IDs
+function resolvePriceId(raw, region) {
+    const parts = String(raw).split(',').map(s => s.trim()).filter(Boolean);
+    for (const part of parts) {
+        const [reg, id] = part.split(':').map(s => s && s.trim());
+        if (id) {
+            if (!reg) return id;                     // bare price ID → universal
+            if (reg === region) return id;           // region match
+        } else if (part) {
+            return part;                             // no colon at all → universal
+        }
+    }
+    return null;
+}
 
 const CORS_HEADERS = {
     'Content-Type': 'application/json',
@@ -48,9 +71,9 @@ exports.handler = async (event) => {
         };
     }
 
-    let tier;
+    let tier, region;
     try {
-        ({ tier } = JSON.parse(event.body));
+        ({ tier, region } = JSON.parse(event.body));
     } catch (e) {
         return {
             statusCode: 400,
@@ -59,8 +82,10 @@ exports.handler = async (event) => {
         };
     }
 
+    if (!VALID_REGIONS.has(region)) region = 'US';
+
     const priceEnvName = PRICE_ENV[tier];
-    const priceId = priceEnvName && process.env[priceEnvName];
+    const priceId = priceEnvName && resolvePriceId(process.env[priceEnvName] || '', region);
     if (!priceId) {
         return {
             statusCode: 501,

@@ -2,12 +2,14 @@ import { useState, useEffect } from 'react';
 import { saveStory, isStorySaved } from '../services/storageService';
 import { generateEPUB } from '../utils/epubGenerator';
 import { startCheckout } from '../services/checkoutService';
+import { usePricing } from '../utils/pricing';
 
 export default function StoryViewer({ story, onClose, onStorySaved, isGenerating = false }) {
     const [currentPage, setCurrentPage] = useState(0);
     const [isSaved, setIsSaved] = useState(false);
     const [isGeneratingEbook, setIsGeneratingEbook] = useState(false);
     const [orderMessage, setOrderMessage] = useState(null);
+    const pricing = usePricing();
 
     // Calculate generation progress for loading indicator
     const totalPages = story.pages?.length || 0;
@@ -132,7 +134,7 @@ export default function StoryViewer({ story, onClose, onStorySaved, isGenerating
                                 disabled={isGenerating}
                                 title="Beautiful 8.5&quot; x 8.5&quot; hardcover, shipped to you"
                             >
-                                🛒 Order Hardcover — $29
+                                🛒 Order Hardcover — {pricing.symbol}{pricing.prices.hardcover} {pricing.label}
                             </button>
                         </div>
                         {orderMessage && <div className="order-message">{orderMessage}</div>}

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { usePricing } from '../utils/pricing';
 
 // Submit an email to a Netlify form (forms are pre-registered in index.html)
 async function submitToNetlifyForm(formName, fields) {
@@ -11,9 +12,40 @@ async function submitToNetlifyForm(formName, fields) {
     if (!res.ok) throw new Error(`Form submission failed (${res.status})`);
 }
 
+// Quick-start themes — these prefill the real story builder's "Story Theme" field.
+const THEMES = [
+    { icon: '🚀', label: 'Space Voyage', prompt: 'A space adventure: exploring new planets, meeting friendly aliens, and saving the day among the stars.' },
+    { icon: '👑', label: 'Princess Quest', prompt: 'A brave royal quest to lift a spell and save a magical kingdom, with courage and kindness along the way.' },
+    { icon: '🦖', label: 'Dinosaur World', prompt: 'A prehistoric jungle adventure where friendly dinosaurs need help solving a big problem.' },
+    { icon: '🧜', label: 'Ocean Adventure', prompt: 'An underwater journey through a coral kingdom, with sea creatures who become loyal friends.' },
+    { icon: '🐉', label: 'Dragon Rescue', prompt: 'Rescuing a lost baby dragon and helping it find its family — a tale of bravery and friendship.' },
+    { icon: '⚽', label: 'Sports Star', prompt: 'The big game: an underdog story where practice, teamwork, and heart save the match.' }
+];
+
 export default function Hero({ onCreateStory }) {
+    const pricing = usePricing();
     const [waitlistEmail, setWaitlistEmail] = useState('');
     const [waitlistState, setWaitlistState] = useState('idle'); // idle | sending | done | error
+
+    // Quick-start builder state (handoff to the real StoryCreator via a draft)
+    const [childName, setChildName] = useState('');
+    const [childAge, setChildAge] = useState('');
+    const [theme, setTheme] = useState(0);
+    const [builderHint, setBuilderHint] = useState(null);
+
+    const handleQuickStart = () => {
+        if (!childName.trim()) {
+            setBuilderHint('Add their name to start the magic ✨');
+            return;
+        }
+        localStorage.setItem('lumifables:draft', JSON.stringify({
+            childName: childName.trim(),
+            childAge: childAge.trim(),
+            storyPrompt: THEMES[theme].prompt
+        }));
+        setBuilderHint(null);
+        onCreateStory();
+    };
 
     const handleWaitlistSubmit = async (e) => {
         e.preventDefault();
@@ -48,50 +80,88 @@ export default function Hero({ onCreateStory }) {
     ];
 
     return (
-        <section className="hero">
+        <section className="hero hero-magic">
             <div className="stars"></div>
             <div className="stars2"></div>
             <div className="stars3"></div>
 
-            {/* Hero Content */}
-            <div className="hero-content">
+            {/* Hero + Quick-Start Builder */}
+            <div className="hero-content hero-magic-content">
                 <div className="hero-badge">
                     <span className="badge-icon">🎁</span>
                     <span>Perfect Gift for Any Occasion</span>
                 </div>
 
-                <h1 className="hero-title">
-                    <span>Turn Your Child Into The</span>
-                    <br />
-                    <span className="gradient-text">Star of Their Own</span>
-                    <br />
-                    <span className="gradient-text-alt">Storybook</span>
+                <h1 className="hero-title hero-magic-title">
+                    Make a storybook <span className="gradient-text">starring your kid</span> — in the next 5 minutes
                 </h1>
 
                 <p className="hero-subtitle">
-                    Upload a photo, choose a theme, and watch AI create a beautiful,
-                    personalized storybook featuring your child as the hero.
-                    <strong> Ready to print in minutes.</strong>
+                    Upload a photo, pick a theme, hit go. Their face and name woven into every page.
+                    <strong> Free to make, free to read — pay only when you want it printed.</strong>
                 </p>
 
-                <div className="hero-cta-group">
-                    <button className="cta-button primary" onClick={onCreateStory}>
+                {/* Quick-start builder — hands off to the real story creator */}
+                <div className="builder-card">
+                    <div className="builder-fields">
+                        <div className="builder-field">
+                            <label htmlFor="builder-name">CHILD'S NAME</label>
+                            <input
+                                id="builder-name"
+                                type="text"
+                                placeholder="e.g. Maya"
+                                value={childName}
+                                onChange={(e) => { setChildName(e.target.value); setBuilderHint(null); }}
+                            />
+                        </div>
+                        <div className="builder-field">
+                            <label htmlFor="builder-age">THEIR AGE</label>
+                            <input
+                                id="builder-age"
+                                type="number"
+                                min="1"
+                                max="16"
+                                placeholder="e.g. 5"
+                                value={childAge}
+                                onChange={(e) => setChildAge(e.target.value)}
+                            />
+                        </div>
+                    </div>
+
+                    <div className="builder-field">
+                        <label>PICK A THEME</label>
+                        <div className="chip-row">
+                            {THEMES.map((t, i) => (
+                                <button
+                                    key={t.label}
+                                    type="button"
+                                    className={`chip ${i === theme ? 'active' : ''}`}
+                                    onClick={() => setTheme(i)}
+                                >
+                                    {t.icon} {t.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <button className="builder-go" onClick={handleQuickStart}>
                         <span className="button-content">
-                            Create Your Book Free
+                            Make my book — it's free
                             <span className="sparkle">✨</span>
                         </span>
                     </button>
-                    <button className="cta-button secondary" onClick={() => document.getElementById('gallery')?.scrollIntoView({ behavior: 'smooth' })}>
-                        <span className="button-content">
-                            See Examples
-                        </span>
-                    </button>
+                    {builderHint && <p className="builder-hint">{builderHint}</p>}
+                    <p className="builder-tiny">🔒 Photo stays private · No account needed · Free preview before you pay</p>
                 </div>
 
-                <div className="trust-badges">
+                <div className="trust-strip">
                     <div className="trust-badge">
                         <span className="trust-icon">🔒</span>
                         <span>Your photos stay private</span>
+                    </div>
+                    <div className="trust-badge">
+                        <span className="trust-icon">📖</span>
+                        <span>Read the whole book before paying</span>
                     </div>
                     <div className="trust-badge">
                         <span className="trust-icon">🚚</span>
@@ -100,63 +170,48 @@ export default function Hero({ onCreateStory }) {
                 </div>
             </div>
 
-            {/* Hero Image Showcase */}
-            <div className="hero-image-section">
-                <div className="hero-image-container">
-                    <img
-                        src="/assets/hero-child-reading.jpg"
-                        alt="Child reading personalized storybook"
-                        className="hero-showcase-image"
-                    />
-                    <div className="hero-image-badge">
-                        <span className="badge-sparkle">✨</span>
-                        <span>See the magic in their eyes</span>
+            {/* Why LumiFables */}
+            <section id="why-us" className="features-section">
+                <h2 className="section-title">Why parents pick LumiFables</h2>
+                <p className="section-subtitle">The AI that actually keeps your child's face on every page.</p>
+                <div className="features-grid">
+                    <div className="feature-card">
+                        <span className="feature-icon">🧒</span>
+                        <h3>Looks like THEM</h3>
+                        <p>Their face, hair and smile carry through every page — not a generic kid.</p>
                     </div>
-                </div>
-                <div className="hero-image-caption">
-                    <h3>Watch their eyes light up as they become the hero of their own adventure!</h3>
-                    <p>Every child deserves to see themselves in their favorite story</p>
-                </div>
-            </div>
-
-            {/* How It Works Section */}
-            <section id="how-it-works" className="how-it-works">
-                <h2 className="section-title">Create Your Book in 3 Easy Steps</h2>
-                <div className="steps-container">
-                    <div className="step">
-                        <div className="step-number">1</div>
-                        <div className="step-icon">📸</div>
-                        <h3>Upload Photo</h3>
-                        <p>Upload a clear photo of your child. Our AI will use it to personalize every illustration.</p>
+                    <div className="feature-card">
+                        <span className="feature-icon">📖</span>
+                        <h3>Your story, not a template</h3>
+                        <p>Written around your idea: their birthday, their dog, their first day of school.</p>
                     </div>
-                    <div className="step-arrow">→</div>
-                    <div className="step">
-                        <div className="step-number">2</div>
-                        <div className="step-icon">🎨</div>
-                        <h3>Choose Theme</h3>
-                        <p>Pick from magical adventures, space exploration, underwater journeys, and more!</p>
+                    <div className="feature-card">
+                        <span className="feature-icon">🔒</span>
+                        <h3>Private by default</h3>
+                        <p>The photo is used to draw the book, then deleted on request. Never sold, never trained on.</p>
                     </div>
-                    <div className="step-arrow">→</div>
-                    <div className="step">
-                        <div className="step-number">3</div>
-                        <div className="step-icon">📖</div>
-                        <h3>Get Your Book</h3>
-                        <p>Preview your story instantly. Order a beautifully printed hardcover or download PDF.</p>
+                    <div className="feature-card">
+                        <span className="feature-icon">⚡</span>
+                        <h3>5 minutes, really</h3>
+                        <p>No account, no design skills. Preview the finished book before paying a cent.</p>
                     </div>
                 </div>
             </section>
 
-            {/* Pricing Section */}
+            {/* Pricing Section — localized by region */}
             <section id="pricing" className="pricing-section">
                 <h2 className="section-title">Simple, Transparent Pricing</h2>
-                <p className="section-subtitle">Create for free. Pay only when you love it.</p>
+                <p className="section-subtitle">
+                    Create for free. Pay only when you love it.
+                    <span className="pricing-region-note"> · Prices in {pricing.label} for your region</span>
+                </p>
 
                 <div className="pricing-cards">
                     <div className="pricing-card">
                         <div className="pricing-header">
                             <h3>Digital</h3>
                             <div className="price">
-                                <span className="price-amount">$9</span>
+                                <span className="price-amount">{pricing.symbol}{pricing.prices.digital}</span>
                                 <span className="price-period">per book</span>
                             </div>
                         </div>
@@ -175,7 +230,7 @@ export default function Hero({ onCreateStory }) {
                         <div className="pricing-header">
                             <h3>Printed Hardcover</h3>
                             <div className="price">
-                                <span className="price-amount">$29</span>
+                                <span className="price-amount">{pricing.symbol}{pricing.prices.hardcover}</span>
                                 <span className="price-period">per book</span>
                             </div>
                         </div>
@@ -194,7 +249,7 @@ export default function Hero({ onCreateStory }) {
                         <div className="pricing-header">
                             <h3>Softcover</h3>
                             <div className="price">
-                                <span className="price-amount">$19</span>
+                                <span className="price-amount">{pricing.symbol}{pricing.prices.softcover}</span>
                                 <span className="price-period">per book</span>
                             </div>
                         </div>
@@ -289,7 +344,7 @@ export default function Hero({ onCreateStory }) {
             {/* Final CTA */}
             <section className="final-cta">
                 <h2>Ready to Create Magic?</h2>
-                <p>It takes just 2 minutes to create a story your child will treasure forever.</p>
+                <p>It takes just 5 minutes to create a story your child will treasure forever.</p>
                 <button className="cta-button primary large" onClick={onCreateStory}>
                     <span className="button-content">
                         Start Creating - It's Free

@@ -8,12 +8,17 @@ variables**, then redeploy.
 
 ## 1. Stripe checkout (~30 min)
 1. Create a Stripe account → API keys: copy the **secret key**.
-2. In Stripe → Products, create three products: Digital PDF ($9),
-   Softcover ($19), Hardcover ($29). Copy each **price ID** (`price_...`).
+2. In Stripe → Products, create three products: Digital PDF, Softcover,
+   Hardcover. Prices are localized per region (US $12/$29/$39 USD,
+   CA $16/$39/$52 CAD, GB £10/£24/£32), so create **one price per
+   currency** for each product and note all price IDs (`price_...`).
 3. Set env vars: `STRIPE_SECRET_KEY`, `STRIPE_PRICE_DIGITAL`,
-   `STRIPE_PRICE_SOFTCOVER`, `STRIPE_PRICE_HARDCOVER`.
-4. Deploy. The "Order Hardcover — $29" button in the story viewer now
-   redirects to real Stripe Checkout. (Test cards work in test mode.)
+   `STRIPE_PRICE_SOFTCOVER`, `STRIPE_PRICE_HARDCOVER` (comma-separated
+   per-currency IDs, e.g. `price_usd_123,price_cad_456,price_gbp_789`).
+4. Deploy. The "Order Hardcover" button in the story viewer redirects to
+   real Stripe Checkout. (Test cards work in test mode.)
+   The client sends the detected region along with the tier so the
+   function can pick the right price ID.
 
 ## 2. Lulu print fulfilment (~1 hr)
 1. Create a Lulu Direct (Print API) account — sandbox first.

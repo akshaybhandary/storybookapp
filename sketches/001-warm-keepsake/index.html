@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LumiFables — Warm Keepsake direction</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Fredoka:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Fredoka', sans-serif; background: #FFF9F2; color: #3E3630; line-height: 1.6; }
+  .serif { font-family: 'Fraunces', serif; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 1.5rem; }
+
+  nav { display: flex; justify-content: space-between; align-items: center; padding: 1.25rem 0; }
+  .brand { font-family: 'Fraunces', serif; font-size: 1.5rem; font-weight: 700; color: #2E2924; }
+  .brand em { color: #E67E50; font-style: normal; }
+  nav a { color: #6B5E52; text-decoration: none; margin-left: 1.5rem; font-weight: 500; }
+  nav a:hover { color: #E67E50; }
+
+  .hero { display: grid; grid-template-columns: 1.05fr 1fr; gap: 3rem; align-items: center; padding: 3.5rem 0 4rem; }
+  .hero .eyebrow { letter-spacing: 0.14em; text-transform: uppercase; font-size: 0.78rem; color: #C77B54; font-weight: 600; }
+  .hero h1 { font-family: 'Fraunces', serif; font-size: clamp(2.4rem, 5vw, 3.6rem); line-height: 1.12; font-weight: 600; margin: 0.75rem 0; }
+  .hero h1 em { color: #E67E50; font-style: italic; }
+  .hero p.lead { font-size: 1.12rem; color: #5C5247; max-width: 30rem; }
+  .cta-row { display: flex; gap: 0.9rem; margin-top: 1.75rem; flex-wrap: wrap; }
+  .btn { border-radius: 999px; padding: 0.9rem 1.7rem; font-weight: 600; font-size: 1rem; cursor: pointer; border: none; text-decoration: none; display: inline-block; transition: transform .15s ease, box-shadow .15s ease; }
+  .btn:hover { transform: translateY(-2px); }
+  .btn-primary { background: #E67E50; color: #fff; box-shadow: 0 10px 24px rgba(230,126,80,.35); }
+  .btn-ghost { background: transparent; color: #2E2924; border: 1.5px solid #E5D5C8; }
+
+  /* Before/after slider */
+  .ba-frame { position: relative; border-radius: 22px; overflow: hidden; box-shadow: 0 30px 60px rgba(62,54,48,.18); aspect-ratio: 1.15; }
+  .ba-frame > div { position: absolute; inset: 0; display: grid; place-items: center; }
+  .ba-photo { background: linear-gradient(160deg, #D9CBBE, #B8A79A); }
+  .ba-photo span, .ba-art span { font-size: 3.4rem; }
+  .ba-art { background: linear-gradient(160deg, #FFD9A8, #E67E50 55%, #B85C38); clip-path: inset(0 50% 0 0); }
+  .ba-label { position: absolute; bottom: 14px; left: 14px; background: rgba(255,255,255,.85); padding: .35rem .8rem; border-radius: 999px; font-size: .8rem; font-weight: 600; }
+  .ba-note { position: absolute; bottom: 14px; right: 14px; background: rgba(46,41,36,.75); color: #fff; padding: .35rem .8rem; border-radius: 999px; font-size: .8rem; }
+  .ba-frame input[type=range] { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: ew-resize; }
+
+  .strip { background: #2E2924; color: #F5EDE3; border-radius: 18px; padding: 1.1rem 1.5rem; display: flex; gap: 2.5rem; justify-content: center; flex-wrap: wrap; font-size: .95rem; }
+  .strip b { color: #FFC69B; }
+
+  section { padding: 4rem 0; }
+  h2 { font-family: 'Fraunces', serif; font-size: 2.1rem; font-weight: 600; text-align: center; }
+  .sub { text-align: center; color: #8A7E74; margin: 0.5rem 0 2.5rem; }
+
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
+  .step { background: #fff; border: 1px solid #F0E3DA; border-radius: 18px; padding: 1.75rem; }
+  .step .n { font-family: 'Fraunces', serif; font-size: 2.2rem; color: #E67E50; font-weight: 300; }
+  .step h3 { margin: .5rem 0 .35rem; font-size: 1.15rem; }
+  .step p { color: #6B5E52; font-size: .95rem; }
+
+  .pricing { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
+  .card { background: #fff; border: 1px solid #F0E3DA; border-radius: 20px; padding: 2rem; text-align: center; }
+  .card.featured { border: 2px solid #E67E50; box-shadow: 0 24px 48px rgba(230,126,80,.16); position: relative; }
+  .card .tag { position: absolute; top: -13px; left: 50%; transform: translateX(-50%); background: #E67E50; color: #fff; padding: .3rem 1rem; border-radius: 999px; font-size: .8rem; font-weight: 600; }
+  .price { font-family: 'Fraunces', serif; font-size: 2.6rem; font-weight: 600; margin: .5rem 0; }
+  .card ul { list-style: none; color: #5C5247; font-size: .93rem; margin: 1rem 0 1.5rem; text-align: left; }
+  .card li { padding: .3rem 0 .3rem 1.4rem; position: relative; }
+  .card li::before { content: "✓"; position: absolute; left: 0; color: #E67E50; font-weight: 700; }
+
+  .gift { background: #F7EDE1; border-radius: 28px; padding: 3.5rem; display: grid; grid-template-columns: 1.2fr 1fr; gap: 2.5rem; align-items: center; }
+  .gift h2 { text-align: left; }
+  .gift .pill-row { display: flex; gap: .6rem; flex-wrap: wrap; margin-top: 1rem; }
+  .pill { background: #fff; border: 1px solid #E8D9C8; padding: .45rem 1rem; border-radius: 999px; font-size: .9rem; }
+  .gift-card-demo { background: #fff; border-radius: 20px; padding: 2.5rem; text-align: center; box-shadow: 0 20px 40px rgba(62,54,48,.12); }
+  .gift-card-demo .big { font-size: 3rem; }
+  .gift-card-demo .code { font-family: 'Fraunces', serif; letter-spacing: .3em; color: #E67E50; margin-top: .5rem; font-weight: 600; }
+
+  footer { text-align: center; color: #9C8F82; padding: 2.5rem 0 3rem; font-size: .9rem; }
+  footer a { color: #6B5E52; text-decoration: none; margin: 0 .8rem; }
+
+  @media (max-width: 860px) { .hero, .gift { grid-template-columns: 1fr; } .steps, .pricing { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav>
+    <div class="brand">Lumi<em>Fables</em></div>
+    <div><a href="#how">How it works</a><a href="#pricing">Pricing</a><a href="#">Gift cards</a></div>
+  </nav>
+
+  <div class="hero">
+    <div>
+      <div class="eyebrow">A book only your child could star in</div>
+      <h1>The night your child became <em>the hero</em> of their own book.</h1>
+      <p class="lead">One photo. One story idea. In a few minutes, a keepsake hardcover arrives at your door — with your child's face, name and your story woven through every page.</p>
+      <div class="cta-row">
+        <a class="btn btn-primary" href="#">Create their book — free preview</a>
+        <a class="btn btn-ghost" href="#how">See how it works</a>
+      </div>
+      <p style="margin-top: 1rem; font-size:.9rem; color:#9C8F82;">🔒 Free to preview · Photos deleted on request · No account needed</p>
+    </div>
+    <div class="ba-frame" title="Drag to compare">
+      <div class="ba-photo"><span>📷</span></div>
+      <div class="ba-art" id="art"><span>✨🧒✨</span></div>
+      <div class="ba-label">Their photo</div>
+      <div class="ba-note">Their storybook</div>
+      <input type="range" min="0" max="100" value="50" oninput="document.getElementById('art').style.clipPath='inset(0 '+(100-this.value)+'% 0 0)'">
+    </div>
+  </div>
+
+  <div class="strip">
+    <span>🎁 <b>A gift they never outgrow</b></span>
+    <span>🌍 <b>Ships to US, Canada & UK</b></span>
+    <span>👍 <b>Preview every page before paying</b></span>
+  </div>
+
+  <section id="how">
+    <h2>Made by you. Kept forever.</h2>
+    <p class="sub">Three steps, ten minutes, one very excited child.</p>
+    <div class="steps">
+      <div class="step"><div class="n">01</div><h3>Upload their photo</h3><p>A clear, smiling photo works best. We turn it into their illustrated character — and nothing else ever sees it.</p></div>
+      <div class="step"><div class="n">02</div><h3>Tell us the story</h3><p>"Maya rescues a dragon on her 5th birthday." Your idea, their name, their age — the story is written around your words.</p></div>
+      <div class="step"><div class="n">03</div><h3>Preview, then keep</h3><p>Read the whole book free. Love it? Download the PDF or order the hardcover — printed and shipped in days.</p></div>
+    </div>
+  </section>
+
+  <section id="pricing">
+    <h2>One book, three ways to keep it</h2>
+    <p class="sub">Free to create. Pay only when it's already their favorite.</p>
+    <div class="pricing">
+      <div class="card"><h3>Digital</h3><div class="price">$12</div><ul><li>High-res PDF</li><li>5–12 illustrated pages</li><li>Instant delivery</li><li>Print at home included</li></ul><a class="btn btn-ghost" href="#">Start free</a></div>
+      <div class="card featured"><div class="tag">Most gifted</div><h3>Hardcover</h3><div class="price">$39</div><ul><li>8.5" × 8.5" premium hardcover</li><li>Thick glossy pages</li><li>Gift-ready packaging</li><li>Free shipping over $50</li><li>Digital PDF included</li></ul><a class="btn btn-primary" href="#">Start free</a></div>
+      <div class="card"><h3>Softcover</h3><div class="price">$29</div><ul><li>Matte softcover</li><li>8.5" × 8.5"</li><li>Great for little hands</li><li>Digital PDF included</li></ul><a class="btn btn-ghost" href="#">Start free</a></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="gift">
+      <div>
+        <h2>For the birthday you almost forgot. 😅</h2>
+        <p style="color:#6B5E52; margin-top:.75rem;">Send a LumiFables gift card — they make the book together, you get the credit. Delivered by email in minutes.</p>
+        <div class="pill-row"><span class="pill">🎂 Birthdays</span><span class="pill">🎄 Christmas</span><span class="pill">👶 New baby</span><span class="pill">🦷 First lost tooth</span><span class="pill">🎓 First day of school</span></div>
+      </div>
+      <div class="gift-card-demo"><div class="big">🎁</div><div class="serif" style="font-size:1.2rem;">One storybook</div><div class="code">GIFT-XXXX</div><div style="font-size:.85rem;color:#9C8F82;margin-top:.4rem;">from someone who loves you</div></div>
+    </div>
+  </section>
+
+  <footer>© 2026 LumiFables · <a href="#">Privacy</a><a href="#">Terms</a><a href="#">Contact</a> · Made with ❤️ for families</footer>
+</div>
+</body>
+</html>

@@ -65,9 +65,14 @@ export default function StoryCreator({ onClose, onStoryGenerated, onPageUpdate }
     const [step, setStep] = useState(1);
     const [photo, setPhoto] = useState(null);
     const [photoPreview, setPhotoPreview] = useState(null);
-    const [childName, setChildName] = useState('');
-    const [childAge, setChildAge] = useState('');
-    const [storyPrompt, setStoryPrompt] = useState('');
+    // Prefill from the landing-page quick-start builder (if the visitor used it)
+    const draft = (() => {
+        try { return JSON.parse(localStorage.getItem('lumifables:draft')) || null; }
+        catch { return null; }
+    })();
+    const [childName, setChildName] = useState(draft?.childName || '');
+    const [childAge, setChildAge] = useState(draft?.childAge || '');
+    const [storyPrompt, setStoryPrompt] = useState(draft?.storyPrompt || '');
     const [length, setLength] = useState('short');
     const [loadingText, setLoadingText] = useState('');
     const [error, setError] = useState(null);
