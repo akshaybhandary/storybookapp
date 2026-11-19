@@ -3,7 +3,7 @@ export default function Navbar({ onCreateStory, onOpenLibrary, libraryCount, the
         <nav className="navbar">
             <div className="nav-brand">
                 <span className="magic-wand">✨</span>
-                <h1>StoryBook Magic</h1>
+                <h1>LumiFables</h1>
             </div>
             {showNavLinks && (
                 <div className="nav-links" style={{ display: 'flex', gap: '2rem', marginLeft: '2rem' }}>

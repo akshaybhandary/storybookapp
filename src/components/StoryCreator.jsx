@@ -92,10 +92,15 @@ export default function StoryCreator({ onClose, onStoryGenerated, onPageUpdate }
     };
 
     const [progress, setProgress] = useState(0);
+    const [consent, setConsent] = useState(false);
 
     const handleGenerate = async () => {
         if (!childName || !storyPrompt || !childAge) {
             alert('Please fill in all fields');
+            return;
+        }
+        if (!consent) {
+            alert('Please confirm you are the parent or legal guardian of the child in this photo.');
             return;
         }
 
@@ -354,6 +359,23 @@ export default function StoryCreator({ onClose, onStoryGenerated, onPageUpdate }
                                         </label>
                                     ))}
                                 </div>
+                            </div>
+
+                            <div className="consent-group">
+                                <label className="consent-label">
+                                    <input
+                                        type="checkbox"
+                                        checked={consent}
+                                        onChange={(e) => setConsent(e.target.checked)}
+                                    />
+                                    <span>
+                                        I am the parent or legal guardian of the child in this
+                                        photo, and I agree to the{' '}
+                                        <a href="/privacy.html" target="_blank" rel="noopener">Privacy Policy</a>{' '}
+                                        and{' '}
+                                        <a href="/terms.html" target="_blank" rel="noopener">Terms of Service</a>.
+                                    </span>
+                                </label>
                             </div>
 
                             <div className="button-group">

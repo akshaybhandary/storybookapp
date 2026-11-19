@@ -1,35 +1,51 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+
+// Submit an email to a Netlify form (forms are pre-registered in index.html)
+async function submitToNetlifyForm(formName, fields) {
+    const body = new URLSearchParams({ 'form-name': formName, ...fields });
+    const res = await fetch('/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: body.toString()
+    });
+    if (!res.ok) throw new Error(`Form submission failed (${res.status})`);
+}
 
 export default function Hero({ onCreateStory }) {
-    const [activeTestimonial, setActiveTestimonial] = useState(0);
+    const [waitlistEmail, setWaitlistEmail] = useState('');
+    const [waitlistState, setWaitlistState] = useState('idle'); // idle | sending | done | error
 
-    const testimonials = [
+    const handleWaitlistSubmit = async (e) => {
+        e.preventDefault();
+        if (!waitlistEmail || !/.+@.+\..+/.test(waitlistEmail)) return;
+        setWaitlistState('sending');
+        try {
+            await submitToNetlifyForm('waitlist', { email: waitlistEmail, source: 'landing' });
+            setWaitlistState('done');
+        } catch (err) {
+            console.error(err);
+            setWaitlistState('error');
+        }
+    };
+
+    // Honest promise section — no invented claims, replaces the testimonials carousel.
+    const promises = [
         {
-            text: "My daughter's face when she saw herself as the princess in her own book was priceless!",
-            author: "Sarah M.",
-            title: "Mom of 2",
-            rating: 5
+            icon: '🔒',
+            title: 'Your photos stay private',
+            text: 'Photos are used only to create your book, never sold or shared. Delete any time — see our Privacy Policy.'
         },
         {
-            text: "The quality is amazing. We've ordered 5 books already for different occasions.",
-            author: "James K.",
-            title: "Grandfather",
-            rating: 5
+            icon: '👀',
+            title: 'Preview before you pay',
+            text: 'See the complete illustrated book first. Creating is free — you only pay if you love it.'
         },
         {
-            text: "Perfect birthday gift! The personalization makes it so special.",
-            author: "Emily R.",
-            title: "Aunt",
-            rating: 5
+            icon: '🛠️',
+            title: 'Made just for them',
+            text: 'Your child is the hero: their look, their name, a story built around your idea.'
         }
     ];
-
-    useEffect(() => {
-        const timer = setInterval(() => {
-            setActiveTestimonial((prev) => (prev + 1) % testimonials.length);
-        }, 5000);
-        return () => clearInterval(timer);
-    }, [testimonials.length]);
 
     return (
         <section className="hero">
@@ -74,8 +90,8 @@ export default function Hero({ onCreateStory }) {
 
                 <div className="trust-badges">
                     <div className="trust-badge">
-                        <span className="trust-icon">⭐</span>
-                        <span>4.9/5 Rating</span>
+                        <span className="trust-icon">🔒</span>
+                        <span>Your photos stay private</span>
                     </div>
                     <div className="trust-badge">
                         <span className="trust-icon">🚚</span>
@@ -227,35 +243,47 @@ export default function Hero({ onCreateStory }) {
                 </div>
             </section>
 
-            {/* Testimonials */}
-            <section className="testimonials">
-                <h2 className="section-title">What Parents Are Saying</h2>
-                <div className="testimonial-carousel">
-                    {testimonials.map((testimonial, index) => (
-                        <div
-                            key={index}
-                            className={`testimonial ${index === activeTestimonial ? 'active' : ''}`}
-                        >
-                            <div className="testimonial-stars">
-                                {'⭐'.repeat(testimonial.rating)}
-                            </div>
-                            <p className="testimonial-text">"{testimonial.text}"</p>
-                            <div className="testimonial-author">
-                                <strong>{testimonial.author}</strong>
-                                <span>{testimonial.title}</span>
-                            </div>
+            {/* Our Promise (replaces testimonials — only honest, verifiable claims) */}
+            <section className="promise-section">
+                <h2 className="section-title">The LumiFables Promise</h2>
+                <p className="section-subtitle">What you can count on, every single book</p>
+                <div className="promise-grid">
+                    {promises.map((p, i) => (
+                        <div key={i} className="promise-card">
+                            <span className="promise-icon">{p.icon}</span>
+                            <h3>{p.title}</h3>
+                            <p>{p.text}</p>
                         </div>
                     ))}
-                    <div className="testimonial-dots">
-                        {testimonials.map((_, index) => (
-                            <button
-                                key={index}
-                                className={`dot ${index === activeTestimonial ? 'active' : ''}`}
-                                onClick={() => setActiveTestimonial(index)}
-                            />
-                        ))}
-                    </div>
                 </div>
+            </section>
+
+            {/* Email capture */}
+            <section className="waitlist-section">
+                <h2 className="section-title">Get $5 off your first printed book</h2>
+                <p className="section-subtitle">Join the list — we'll email your discount when printed books open.</p>
+                {waitlistState === 'done' ? (
+                    <p className="waitlist-done">🎉 You're on the list — check your inbox soon!</p>
+                ) : (
+                    <form className="waitlist-form" onSubmit={handleWaitlistSubmit}>
+                        <input
+                            type="email"
+                            name="email"
+                            required
+                            placeholder="you@email.com"
+                            value={waitlistEmail}
+                            onChange={(e) => setWaitlistEmail(e.target.value)}
+                            disabled={waitlistState === 'sending'}
+                        />
+                        <button type="submit" className="cta-button secondary" disabled={waitlistState === 'sending' || !waitlistEmail}>
+                            {waitlistState === 'sending' ? 'Joining...' : 'Join the List'}
+                        </button>
+                        {waitlistState === 'error' && (
+                            <span className="waitlist-error">Something went wrong — please try again.</span>
+                        )}
+                        <noscript><p>This form needs JavaScript enabled.</p></noscript>
+                    </form>
+                )}
             </section>
 
             {/* Final CTA */}
@@ -276,15 +304,14 @@ export default function Hero({ onCreateStory }) {
                 <div className="footer-content">
                     <div className="footer-brand">
                         <span className="magic-wand">✨</span>
-                        <span>StoryBook Magic</span>
+                        <span>LumiFables</span>
                     </div>
                     <div className="footer-links">
-                        <a href="#">Privacy Policy</a>
-                        <a href="#">Terms of Service</a>
-                        <a href="#">Contact Us</a>
-                        <a href="#">FAQ</a>
+                        <a href="/privacy.html">Privacy Policy</a>
+                        <a href="/terms.html">Terms of Service</a>
+                        <a href="mailto:hello@lumifables.com">Contact Us</a>
                     </div>
-                    <p className="footer-copy">© 2024 StoryBook Magic. Made with ❤️ for families everywhere.</p>
+                    <p className="footer-copy">© 2026 LumiFables. Made with ❤️ for families everywhere.</p>
                 </div>
             </footer>
         </section>

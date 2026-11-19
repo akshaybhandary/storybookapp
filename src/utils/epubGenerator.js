@@ -118,7 +118,7 @@ function generateContentOpf(story, imageManifest = [], coverPage = null) {
     <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
         <dc:identifier id="bookid">urn:uuid:${generateUUID()}</dc:identifier>
         <dc:title>${escapeXml(story.title)}</dc:title>
-        <dc:creator>StoryBook Magic</dc:creator>
+        <dc:creator>LumiFables</dc:creator>
         <dc:language>en</dc:language>
         <dc:date>${new Date().toISOString().split('T')[0]}</dc:date>
         <meta property="dcterms:modified">${new Date().toISOString().split('.')[0]}Z</meta>

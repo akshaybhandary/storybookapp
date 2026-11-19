@@ -2792,3 +2792,172 @@ body {
         width: 100%;
     }
 }
+
+/* ============================================================
+   New sections (added): promise cards, waitlist, consent, order
+   ============================================================ */
+
+/* --- Promise section (replaces testimonials) --- */
+.promise-section {
+    padding: 4rem 2rem;
+    text-align: center;
+}
+
+.promise-grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1.5rem;
+    max-width: 1100px;
+    margin: 2.5rem auto 0;
+}
+
+.promise-card {
+    background: var(--bg-card, rgba(255, 255, 255, 0.06));
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: var(--radius-xl, 1.25rem);
+    padding: 1.75rem 1.5rem;
+    width: 290px;
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.promise-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 14px 34px rgba(0, 0, 0, 0.18);
+}
+
+.promise-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 52px;
+    height: 52px;
+    font-size: 1.6rem;
+    background: rgba(155, 126, 189, 0.16);
+    border-radius: 50%;
+    margin-bottom: 1rem;
+}
+
+.promise-card h3 {
+    font-size: 1.15rem;
+    margin: 0 0 0.5rem;
+    color: var(--text-primary, #fff);
+}
+
+.promise-card p {
+    font-size: 0.95rem;
+    color: var(--text-secondary, #ccc);
+    line-height: 1.55;
+    margin: 0;
+}
+
+/* --- Waitlist (email capture) --- */
+.waitlist-section {
+    padding: 3.5rem 2rem;
+    text-align: center;
+}
+
+.waitlist-form {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-top: 1.75rem;
+}
+
+.waitlist-form input {
+    padding: 0.85rem 1.25rem;
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: var(--bg-card, rgba(255, 255, 255, 0.06));
+    color: var(--text-primary, #fff);
+    font-size: 1rem;
+    min-width: 280px;
+    outline: none;
+}
+
+.waitlist-form input:focus {
+    border-color: var(--brand-primary, #D4AF37);
+}
+
+.waitlist-form button {
+    white-space: nowrap;
+}
+
+.waitlist-done {
+    margin-top: 1.5rem;
+    font-size: 1.05rem;
+    color: var(--color-success, #5FB894);
+    font-weight: 600;
+}
+
+.waitlist-error {
+    width: 100%;
+    color: #e05a4e;
+    font-size: 0.9rem;
+}
+
+/* --- Parental consent (StoryCreator step 2) --- */
+.consent-group {
+    margin: 1.25rem 0 0.5rem;
+    padding: 1rem 1.1rem;
+    background: var(--bg-card, rgba(255, 255, 255, 0.06));
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 12px;
+}
+
+.consent-label {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.7rem;
+    cursor: pointer;
+    font-size: 0.92rem;
+    color: var(--text-secondary, #ccc);
+    line-height: 1.5;
+}
+
+.consent-label input[type='checkbox'] {
+    width: 18px;
+    height: 18px;
+    margin-top: 2px;
+    accent-color: var(--brand-primary, #D4AF37);
+    flex-shrink: 0;
+}
+
+.consent-label a {
+    color: var(--brand-primary, #D4AF37);
+    font-weight: 600;
+}
+
+/* --- Order print button + message (StoryViewer) --- */
+.order-print-btn {
+    background: linear-gradient(135deg, var(--brand-primary, #D4AF37), var(--brand-primary-light, #E8C547));
+    color: var(--brand-secondary, #1B1F3B);
+    font-weight: 700;
+    border: none;
+}
+
+.order-print-btn:hover {
+    filter: brightness(1.06);
+}
+
+.order-message {
+    margin-top: 0.75rem;
+    padding: 0.65rem 1rem;
+    background: rgba(155, 126, 189, 0.14);
+    border-radius: 10px;
+    font-size: 0.9rem;
+    color: var(--text-secondary, #ccc);
+}
+
+@media (max-width: 640px) {
+    .promise-card {
+        width: 100%;
+        max-width: 340px;
+    }
+    .waitlist-form input {
+        min-width: 240px;
+        width: 100%;
+    }
+}

@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { saveStory, isStorySaved } from '../services/storageService';
 import { generateEPUB } from '../utils/epubGenerator';
+import { startCheckout } from '../services/checkoutService';
 
 export default function StoryViewer({ story, onClose, onStorySaved, isGenerating = false }) {
     const [currentPage, setCurrentPage] = useState(0);
     const [isSaved, setIsSaved] = useState(false);
     const [isGeneratingEbook, setIsGeneratingEbook] = useState(false);
+    const [orderMessage, setOrderMessage] = useState(null);
 
     // Calculate generation progress for loading indicator
     const totalPages = story.pages?.length || 0;
@@ -34,6 +36,23 @@ export default function StoryViewer({ story, onClose, onStorySaved, isGenerating
 
     const handlePrint = () => {
         window.print();
+    };
+
+    // Order a printed copy via the Stripe checkout function.
+    // Until payments are configured the function returns 501 and we show a
+    // friendly "coming soon" instead of an error.
+    const handleOrderPrint = async () => {
+        setOrderMessage(null);
+        try {
+            const { url } = await startCheckout('hardcover');
+            window.location.href = url;
+        } catch (err) {
+            if (err.notConfigured) {
+                setOrderMessage('Printed books are launching soon! Join the waitlist on the homepage for $5 off your first order. 💌');
+            } else {
+                setOrderMessage(err.message);
+            }
+        }
     };
 
     const handleDownloadEbook = async () => {
@@ -107,7 +126,16 @@ export default function StoryViewer({ story, onClose, onStorySaved, isGenerating
                                 </svg>
                                 {isGeneratingEbook ? 'Generating...' : 'Download eBook'}
                             </button>
+                            <button
+                                className="action-btn order-print-btn"
+                                onClick={handleOrderPrint}
+                                disabled={isGenerating}
+                                title="Beautiful 8.5&quot; x 8.5&quot; hardcover, shipped to you"
+                            >
+                                🛒 Order Hardcover — $29
+                            </button>
                         </div>
+                        {orderMessage && <div className="order-message">{orderMessage}</div>}
                     </div>
 
                     {/* Book-style spread layout */}

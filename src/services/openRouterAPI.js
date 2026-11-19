@@ -76,7 +76,7 @@ const getHeaders = (apiKey) => {
     if (!isProduction && apiKey) {
         headers['Authorization'] = `Bearer ${apiKey}`;
         headers['HTTP-Referer'] = window.location.origin;
-        headers['X-Title'] = 'StoryBook Magic';
+        headers['X-Title'] = 'LumiFables';
     }
 
     return headers;

@@ -12,6 +12,36 @@ exports.handler = async (event) => {
         };
     }
 
+    // Optional abuse protection: if TURNSTILE_SECRET_KEY is set, every request
+    // must carry a valid Cloudflare Turnstile token in the x-turnstile-token
+    // header (the client renders the Turnstile widget). Unset = no check,
+    // so this is safe to deploy before Turnstile is configured.
+    if (process.env.TURNSTILE_SECRET_KEY) {
+        const token = event.headers['x-turnstile-token'];
+        if (!token) {
+            return {
+                statusCode: 403,
+                body: JSON.stringify({ error: 'Verification required' })
+            };
+        }
+        const verify = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+                secret: process.env.TURNSTILE_SECRET_KEY,
+                response: token,
+                remoteip: event.headers['client-ip'] || ''
+            }).toString()
+        });
+        const outcome = await verify.json();
+        if (!outcome.success) {
+            return {
+                statusCode: 403,
+                body: JSON.stringify({ error: 'Verification failed' })
+            };
+        }
+    }
+
     try {
         const { endpoint, body } = JSON.parse(event.body);
         const apiKey = process.env.GOOGLE_API_KEY;

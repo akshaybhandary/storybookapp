@@ -6,16 +6,74 @@
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description"
-    content="Create magical, personalized storybooks featuring your child as the hero. AI-powered illustrations, professional printing, instant delivery." />
+    content="LumiFables creates personalized children's storybooks starring your child. Upload a photo, pick a theme, and get a beautifully illustrated storybook — free to create, PDF download or printed hardcover." />
   <meta name="theme-color" content="#E67E50" />
-  <title>StoryBook Magic - Personalized Children's Books</title>
+  <title>LumiFables — Personalized Children's Storybooks Starring Your Child</title>
+
+  <!-- Social sharing -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="LumiFables" />
+  <meta property="og:url" content="https://lumifables.com/" />
+  <meta property="og:title" content="LumiFables — Turn Your Child Into the Star of Their Own Storybook" />
+  <meta property="og:description"
+    content="Upload a photo, choose a theme, and AI creates a beautiful, personalized storybook featuring your child as the hero. Free to create." />
+  <meta property="og:image" content="https://lumifables.com/assets/hero-child-reading.jpg" />
+  <meta property="og:image:alt" content="A child reading a personalized LumiFables storybook" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="LumiFables — Personalized Children's Storybooks" />
+  <meta name="twitter:description"
+    content="Your child as the hero of their own illustrated storybook. Upload a photo, pick a theme, done in minutes. Free to create." />
+  <meta name="twitter:image" content="https://lumifables.com/assets/hero-child-reading.jpg" />
+  <link rel="canonical" href="https://lumifables.com/" />
+
+  <!-- Structured data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    "name": "LumiFables Personalized Storybook",
+    "description": "AI-illustrated personalized children's storybooks featuring your child as the hero. Digital PDF and printed hardcover/softcover editions.",
+    "brand": { "@type": "Brand", "name": "LumiFables" },
+    "offers": {
+      "@type": "Offer",
+      "url": "https://lumifables.com/#pricing",
+      "priceCurrency": "USD",
+      "price": "9.00",
+      "availability": "https://schema.org/InStock"
+    }
+  }
+  </script>
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Netlify Forms: hidden static registration so Netlify detects the forms
+       used by the React app (waitlist + contact). Do not remove. -->
+  <form name="waitlist" data-netlify="true" netlify-honeypot="company" hidden>
+    <input type="text" name="email" />
+    <input type="text" name="source" />
+    <input type="text" name="company" />
+  </form>
+  <form name="contact" data-netlify="true" netlify-honeypot="company" hidden>
+    <input type="text" name="name" />
+    <input type="text" name="email" />
+    <input type="text" name="message" />
+    <input type="text" name="company" />
+  </form>
 </head>
 
 <body>
   <div id="root"></div>
+  <noscript>
+    <div style="font-family: sans-serif; max-width: 640px; margin: 4rem auto; padding: 0 1rem; text-align: center;">
+      <h1>LumiFables — Turn Your Child Into the Star of Their Own Storybook</h1>
+      <p>Upload a photo, choose a theme, and watch AI create a beautiful, personalized
+        storybook featuring your child as the hero. Ready to print in minutes.</p>
+      <p><strong>Create your book free at <a href="https://lumifables.com/">lumifables.com</a></strong></p>
+      <p>Shipping to US, Canada &amp; UK. Digital PDF $9 · Softcover $19 · Hardcover $29.</p>
+    </div>
+  </noscript>
   <script type="module" src="/src/main.jsx"></script>
 </body>
 
