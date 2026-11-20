@@ -76,11 +76,11 @@ exports.handler = async (event) => {
         const d = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(`cover-dimensions ${res.status}: ${JSON.stringify(d).slice(0, 200)}`);
         console.log('COVER_DIMS ' + JSON.stringify(d));
-        const widthPt = d.width ?? d.cover_width;
-        const heightPt = d.height ?? d.cover_height;
-        const spinePt = d.spine_width ?? d.spine ?? 0;
+        const widthPt = Number(d.width ?? d.cover_width);
+        const heightPt = Number(d.height ?? d.cover_height);
+        const spinePt = Number(d.spine_width ?? d.spine ?? 0);
         if (!widthPt || !heightPt) throw new Error('Unexpected cover-dimensions response shape');
-        return json(200, { widthPt, heightPt, spinePt, source: 'lulu' });
+        return json(200, { widthPt, heightPt, spinePt, source: 'lulu', raw: d });
     } catch (error) {
         console.error('cover-dims error:', error);
         // Surface the failure reason (no secrets involved) so a key/realm
