@@ -134,6 +134,41 @@ exports.handler = async (event) => {
         return json(400, { error: 'Invalid JSON body' });
     }
 
+    // Cancel an existing print job (works while it is still inside its
+    // production hold / before printing starts).
+    if (body.cancelJobId) {
+        try {
+            const tokenRes = await fetch(`${lulu.base}/auth/realms/glasstree/protocol/openid-connect/token`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({
+                    grant_type: 'client_credentials',
+                    client_id: clientId,
+                    client_secret: clientSecret
+                }).toString(),
+                signal: AbortSignal.timeout(20000)
+            });
+            const token = (await tokenRes.json().catch(() => ({})))?.access_token;
+            if (!token) return json(502, { error: 'lulu_auth_failed' });
+            const patchRes = await fetch(`${lulu.base}/print-jobs/${encodeURIComponent(body.cancelJobId)}/`, {
+                method: 'PATCH',
+                headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: 'CANCELED' }),
+                signal: AbortSignal.timeout(20000)
+            });
+            const patched = await patchRes.json().catch(() => ({}));
+            if (!patchRes.ok) {
+                return json(502, { error: 'cancel_failed', detail: JSON.stringify(patched).slice(0, 300) });
+            }
+            if (body.bookRef) {
+                await recordStatus(event, body.bookRef, { ok: false, stage: 'canceled', luluJobId: body.cancelJobId });
+            }
+            return json(200, { ok: true, canceled: body.cancelJobId, status: patched.status || null });
+        } catch (err) {
+            return json(502, { error: 'cancel_failed', detail: String((err && err.message) || err).slice(0, 200) });
+        }
+    }
+
     const tier = body.tier === 'softcover' ? 'softcover' : 'hardcover';
     const bookRef = body.bookRef;
     if (!bookRef) return json(422, { error: 'missing_book_ref', message: 'No book files were uploaded for this order.' });
