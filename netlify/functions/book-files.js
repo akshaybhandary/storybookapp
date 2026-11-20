@@ -62,8 +62,19 @@ exports.handler = async (event) => {
     if (event.httpMethod === 'GET') {
         const q = event.queryStringParameters || {};
         const { ref, part, token } = q;
-        if (!/^[A-Za-z0-9-]{8,64}$/.test(ref || '') || (part !== 'interior' && part !== 'cover')) {
-            return json(400, { error: 'Invalid ref or part' });
+        if (!/^[A-Za-z0-9-]{8,64}$/.test(ref || '')) {
+            return json(400, { error: 'Invalid ref' });
+        }
+        // Order status (Lulu job id + status, written by lulu-order) is
+        // readable without a token — it carries nothing sensitive and the
+        // order ref itself is an unguessable UUID.
+        if (part === 'status') {
+            const status = await store.get(`${ref}/status`, { type: 'json' }).catch(() => null);
+            if (!status) return json(404, { error: 'No status yet' });
+            return json(200, status);
+        }
+        if (part !== 'interior' && part !== 'cover') {
+            return json(400, { error: 'Invalid part' });
         }
         const expected = fileToken(ref, part);
         if (!expected) return json(501, { error: 'not_configured' });

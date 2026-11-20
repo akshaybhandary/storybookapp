@@ -24,6 +24,19 @@
 //   URL                  the site's own URL (Netlify provides it)
 
 const crypto = require('crypto');
+const { getStore, connectLambda } = require('@netlify/blobs');
+
+// Record the outcome where it can be read back: book-files serves
+// part=status for an order ref (job id + status only — nothing sensitive).
+async function recordStatus(event, ref, data) {
+    try {
+        try { connectLambda(event); } catch { /* already connected */ }
+        const store = getStore('book-files');
+        await store.setJSON(`${ref}/status`, { ...data, updatedAt: new Date().toISOString() });
+    } catch (err) {
+        console.error('status record failed:', err);
+    }
+}
 
 const CORS_HEADERS = {
     'Content-Type': 'application/json',
@@ -136,6 +149,7 @@ exports.handler = async (event) => {
         const cost = await costRes.json().catch(() => ({}));
         if (!costRes.ok) {
             console.error('LULU_COST_FAILED ' + JSON.stringify(cost).slice(0, 500));
+            await recordStatus(event, bookRef, { ok: false, stage: 'cost_calculation', detail: cost });
             return json(502, { error: 'cost_calculation_failed', detail: cost });
         }
         console.log(`LULU_COST session=${body.stripeSessionId || ''} total=${cost.total_cost_incl_tax ?? cost.total_cost_excl_tax ?? '?'} ${cost.currency || ''}`);
@@ -157,9 +171,11 @@ exports.handler = async (event) => {
         const job = await jobRes.json().catch(() => ({}));
         if (!jobRes.ok) {
             console.error('LULU_JOB_FAILED ' + JSON.stringify(job).slice(0, 500));
+            await recordStatus(event, bookRef, { ok: false, stage: 'print_job', detail: job });
             return json(502, { error: 'print_job_failed', detail: job });
         }
         console.log(`LULU_JOB_CREATED session=${body.stripeSessionId || ''} job=${job.id} status=${job.status}`);
+        await recordStatus(event, bookRef, { ok: true, luluJobId: job.id, status: job.status });
         return json(200, { orderId: job.id, status: job.status });
     } catch (error) {
         console.error('lulu-order error:', error);

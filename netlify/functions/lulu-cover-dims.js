@@ -78,9 +78,12 @@ exports.handler = async (event) => {
         console.log('COVER_DIMS ' + JSON.stringify(d));
         const widthPt = Number(d.width ?? d.cover_width);
         const heightPt = Number(d.height ?? d.cover_height);
-        const spinePt = Number(d.spine_width ?? d.spine ?? 0);
         if (!widthPt || !heightPt) throw new Error('Unexpected cover-dimensions response shape');
-        return json(200, { widthPt, heightPt, spinePt, source: 'lulu', raw: d });
+        // Lulu returns only the total cover size. Both house SKUs use
+        // 444-ppi paper, so the spine is pages / 444 in points — a few
+        // points at these page counts (blank spine, full-bleed art).
+        const spinePt = Math.round((PAGE_COUNTS[tier] / 444) * 72);
+        return json(200, { widthPt, heightPt, spinePt, source: 'lulu' });
     } catch (error) {
         console.error('cover-dims error:', error);
         // Surface the failure reason (no secrets involved) so a key/realm
