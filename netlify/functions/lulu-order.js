@@ -142,13 +142,16 @@ exports.handler = async (event) => {
 
     const base = lulu.base;
     const shippingLevel = process.env.LULU_SHIPPING_LEVEL || 'MAIL';
+    // Dry runs may price an alternate print spec without touching the
+    // live PACKAGES defaults.
+    const pkg = body.dryRun && body.podPackageId ? body.podPackageId : PACKAGES[tier];
     const shippingAddress = mapAddress(body);
     const lineItem = {
         external_id: bookRef,
         title: 'LumiFables Personalized Storybook',
         cover: { source_url: fileUrl(process.env.URL, bookRef, 'cover') },
         interior: { source_url: fileUrl(process.env.URL, bookRef, 'interior') },
-        pod_package_id: PACKAGES[tier],
+        pod_package_id: pkg,
         quantity: 1
     };
 
@@ -173,7 +176,7 @@ exports.handler = async (event) => {
             method: 'POST',
             headers: authHeaders,
             body: JSON.stringify({
-                line_items: [{ pod_package_id: PACKAGES[tier], page_count: pageCount, quantity: 1 }],
+                line_items: [{ pod_package_id: pkg, page_count: pageCount, quantity: 1 }],
                 shipping_address: shippingAddress,
                 shipping_level: shippingLevel
             }),
