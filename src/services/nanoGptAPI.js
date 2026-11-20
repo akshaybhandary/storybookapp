@@ -44,6 +44,38 @@ function notConfiguredError() {
     return err;
 }
 
+// Function invocations reject oversized payloads (HTTP 413) — a phone photo
+// can be several MB. Downscale reference photos to at most 1024px JPEG
+// (~150 KB) before sending; that's plenty for the models to work from.
+// Cached per source string so a whole book only pays the cost once.
+const downscaleCache = new Map();
+async function downscaleDataUrl(dataUrl, maxDim = 1024) {
+    if (!dataUrl || !dataUrl.startsWith('data:image')) return dataUrl;
+    if (downscaleCache.has(dataUrl)) return downscaleCache.get(dataUrl);
+    try {
+        const img = new Image();
+        await new Promise((resolve, reject) => {
+            img.onload = resolve;
+            img.onerror = reject;
+            img.src = dataUrl;
+        });
+        const scale = Math.min(1, maxDim / Math.max(img.naturalWidth, img.naturalHeight));
+        if (scale >= 1 && dataUrl.startsWith('data:image/jpeg')) {
+            downscaleCache.set(dataUrl, dataUrl);
+            return dataUrl;
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(img.naturalWidth * scale);
+        canvas.height = Math.round(img.naturalHeight * scale);
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        const out = canvas.toDataURL('image/jpeg', 0.85);
+        downscaleCache.set(dataUrl, out);
+        return out;
+    } catch {
+        return dataUrl; // if anything goes wrong, send the original
+    }
+}
+
 // Production generation runs as a background job: Seedream takes 30–80s and
 // a full story call 20–40s, both far past a normal function's ~10s limit.
 // Start the job, then poll the status function until it completes.
@@ -271,7 +303,7 @@ Respond with a JSON object:
                 {
                     role: 'user',
                     content: [
-                        { type: 'image_url', image_url: { url: photoBase64 } },
+                        { type: 'image_url', image_url: { url: await downscaleDataUrl(photoBase64) } },
                         { type: 'text', text: analysisPrompt }
                     ]
                 }
@@ -364,7 +396,7 @@ No text, words, letters, or watermarks anywhere in the image.`;
         size: IMAGE_SIZE,
         n: 1
     };
-    if (childPhoto) body.imageDataUrls = [childPhoto];
+    if (childPhoto) body.imageDataUrls = [await downscaleDataUrl(childPhoto)];
 
     const dataUrl = await callImage(body);
     logger.imageGenerationSuccess(pageNumber, 0, true);
