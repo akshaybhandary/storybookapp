@@ -70,7 +70,9 @@ exports.handler = async (event) => {
         };
     }
 
-    const secret = process.env.STRIPE_SECRET_KEY;
+    // Accept the lowercase name too — the key was added to Netlify env as
+    // stripe_secret_key (same pattern as nano_gpt_key).
+    const secret = process.env.STRIPE_SECRET_KEY || process.env.stripe_secret_key;
 
     if (!secret) {
         return {
