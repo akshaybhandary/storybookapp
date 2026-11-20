@@ -6,10 +6,11 @@
 //   generatePageImage(imagePrompt, apiKey, pageNumber, childPhoto, childName,
 //                     characterDescription, storyContext, childAge)
 //
-// Production calls go through /.netlify/functions/nanogpt (the key stays
-// server-side). Until NANOGPT_API_KEY is set there, the function returns 501
-// and this module throws an error with `notConfigured = true`, which
-// aiProvider uses to fall back to the OpenRouter path automatically.
+// Production calls run as background jobs (the key stays server-side):
+// start /.netlify/functions/nanogpt-job-background, poll
+// /.netlify/functions/nanogpt for the result. Until NANOGPT_API_KEY is set,
+// this module throws an error with `notConfigured = true`, which aiProvider
+// uses to fall back to the OpenRouter path automatically.
 //
 // Models (overridable server-side via NANOGPT_TEXT_MODEL / NANOGPT_IMAGE_MODEL):
 //   text + vision: openai/gpt-4o-mini (cheap, strong JSON, sees photos)
@@ -19,10 +20,14 @@ import logger from '../utils/logger';
 
 const TEXT_MODEL = 'openai/gpt-4o-mini';
 const IMAGE_MODEL = 'bytedance/seedream-v5.5';
-const IMAGE_SIZE = '2k'; // Seedream takes a resolution token: '1k' | '1.5k' | '2k'
+// Seedream takes a resolution token: '1k' | '1.5k' | '2k'. 1.5k keeps the
+// result small enough to hand back through a function response (~180 DPI at
+// 8.5in — fine for print); 2k results can exceed the response size limit.
+const IMAGE_SIZE = '1.5k';
 
 const isProduction = import.meta.env.PROD;
 const FUNCTION_URL = '/.netlify/functions/nanogpt';
+const JOB_URL = '/.netlify/functions/nanogpt-job-background';
 const DIRECT_BASE = 'https://api.nano-gpt.com/api/v1';
 
 function devKey() {
@@ -33,21 +38,46 @@ function devKey() {
     }
 }
 
+function notConfiguredError() {
+    const err = new Error('NanoGPT is not configured yet.');
+    err.notConfigured = true;
+    return err;
+}
+
+// Production generation runs as a background job: Seedream takes 30–80s and
+// a full story call 20–40s, both far past a normal function's ~10s limit.
+// Start the job, then poll the status function until it completes.
+async function runJob(kind, body, timeoutMs) {
+    const jobId = (window.crypto && crypto.randomUUID)
+        ? crypto.randomUUID()
+        : `job-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+
+    const start = await fetch(JOB_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jobId, kind, body })
+    });
+    if (start.status === 404) throw new Error('NanoGPT job function is not deployed yet');
+
+    const deadline = Date.now() + timeoutMs;
+    while (Date.now() < deadline) {
+        await new Promise((resolve) => setTimeout(resolve, 2500));
+        const res = await fetch(`${FUNCTION_URL}?jobId=${encodeURIComponent(jobId)}`);
+        const data = await res.json().catch(() => ({}));
+        if (data.status === 'not_configured') throw notConfiguredError();
+        if (data.status === 'done') return data.result;
+        if (data.status === 'error') {
+            if (data.error === 'not_configured') throw notConfiguredError();
+            throw new Error(data.error || 'NanoGPT generation failed');
+        }
+        // 'pending' — keep polling
+    }
+    throw new Error('NanoGPT generation timed out — please try again');
+}
+
 async function callChat(body, apiKey) {
     if (isProduction) {
-        const res = await fetch(FUNCTION_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ kind: 'chat', body })
-        });
-        const data = await res.json().catch(() => ({}));
-        if (res.status === 501) {
-            const err = new Error(data.message || 'NanoGPT is not configured yet.');
-            err.notConfigured = true;
-            throw err;
-        }
-        if (!res.ok) throw new Error(`NanoGPT chat failed (${res.status}): ${data.error || res.statusText}`);
-        return data;
+        return runJob('chat', body, 240000);
     }
     const key = apiKey || devKey();
     const res = await fetch(`${DIRECT_BASE}/chat/completions`, {
@@ -62,20 +92,9 @@ async function callChat(body, apiKey) {
 
 async function callImage(body) {
     if (isProduction) {
-        const res = await fetch(FUNCTION_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ kind: 'image', body })
-        });
-        const data = await res.json().catch(() => ({}));
-        if (res.status === 501) {
-            const err = new Error(data.message || 'NanoGPT is not configured yet.');
-            err.notConfigured = true;
-            throw err;
-        }
-        if (!res.ok) throw new Error(`NanoGPT image failed (${res.status}): ${data.error || res.statusText}`);
-        if (!data.dataUrl) throw new Error('NanoGPT image response had no dataUrl');
-        return data.dataUrl;
+        const result = await runJob('image', body, 300000);
+        if (!result?.dataUrl) throw new Error('NanoGPT image job returned no dataUrl');
+        return result.dataUrl;
     }
     const key = devKey();
     // Image generation lives under /v1, not /api/v1 (verified against the API)

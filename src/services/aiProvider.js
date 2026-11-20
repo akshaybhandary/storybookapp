@@ -41,14 +41,12 @@ export function switchProvider(provider) {
  * In production, returns null (Netlify function handles it)
  * In development, checks localStorage and env vars
  */
-function getProviderApiKey() {
+function getProviderApiKey(provider = getCurrentProvider()) {
     // In production, serverless functions handle API keys
     // No need to check on the client side
     if (import.meta.env.PROD) {
         return null; // Will be handled by Netlify function
     }
-
-    const provider = getCurrentProvider();
 
     if (provider === AI_PROVIDERS.GOOGLE) {
         return getApiKey(); // Google AI Studio key
@@ -73,9 +71,7 @@ function isApiKeyRequired() {
 /**
  * Get provider-specific API implementation
  */
-function getProviderAPI() {
-    const provider = getCurrentProvider();
-
+function getProviderAPI(provider = getCurrentProvider()) {
     if (provider === AI_PROVIDERS.GOOGLE) {
         return googleAPI;
     } else if (provider === AI_PROVIDERS.NANOGPT) {
@@ -83,6 +79,28 @@ function getProviderAPI() {
     } else {
         return openRouterAPI;
     }
+}
+
+/**
+ * Try providers in order — the selected one first, then NanoGPT, OpenRouter,
+ * Google — until one succeeds. A provider can be dead in ways that have
+ * nothing to do with the visitor (e.g. OpenRouter answering "User not found"
+ * for a revoked key), so a hard failure should fall through to the next
+ * provider instead of failing the whole book. The last error is thrown.
+ */
+async function attemptProviders(selected, runFor) {
+    const order = [selected, AI_PROVIDERS.NANOGPT, AI_PROVIDERS.OPENROUTER, AI_PROVIDERS.GOOGLE]
+        .filter((p, i, a) => a.indexOf(p) === i);
+    let lastError;
+    for (const p of order) {
+        try {
+            return await runFor(p);
+        } catch (error) {
+            lastError = error;
+            logger.warn('PROVIDER', `Provider ${p} failed — trying next`, { error: error.message });
+        }
+    }
+    throw lastError;
 }
 
 /**
@@ -119,9 +137,8 @@ export async function generateStoryContent(childName, storyPrompt, pageCount, ch
             throw new Error(`Please set your ${provider === AI_PROVIDERS.GOOGLE ? 'Google AI Studio' : 'OpenRouter'} API key in settings`);
         }
 
-        return await withFallback(provider,
-            () => api.generateStoryContent(childName, storyPrompt, pageCount, apiKey, childAge, onProgress),
-            () => openRouterAPI.generateStoryContent(childName, storyPrompt, pageCount, getOpenRouterKey(), childAge, onProgress));
+        return await attemptProviders(provider,
+            (p) => getProviderAPI(p).generateStoryContent(childName, storyPrompt, pageCount, getProviderApiKey(p), childAge, onProgress));
     } catch (error) {
         logger.error('PROVIDER', `Story generation failed with ${provider}`, error);
         throw error;
@@ -173,20 +190,10 @@ export async function generatePageImage(
             throw new Error(`Please set your ${provider === AI_PROVIDERS.GOOGLE ? 'Google AI Studio' : 'OpenRouter'} API key in settings`);
         }
 
-        return await withFallback(provider,
-            () => api.generatePageImage(
+        return await attemptProviders(provider,
+            (p) => getProviderAPI(p).generatePageImage(
                 imagePrompt,
-                apiKey,
-                pageNumber,
-                childPhoto,
-                childName,
-                characterDescription,
-                storyContext,
-                childAge
-            ),
-            () => openRouterAPI.generatePageImage(
-                imagePrompt,
-                getOpenRouterKey(),
+                getProviderApiKey(p),
                 pageNumber,
                 childPhoto,
                 childName,

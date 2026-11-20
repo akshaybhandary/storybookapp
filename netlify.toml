@@ -5,6 +5,9 @@
 [functions]
   # Increase timeout to maximum (26 seconds on Pro plan)
   node_bundler = "esbuild"
+  # @netlify/blobs is provided by the functions runtime — keep it external
+  # so no npm dependency (or lockfile change) is needed for the job handover
+  external_node_modules = ["@netlify/blobs"]
   
 [functions.openrouter]
   # Maximum timeout - requires Pro plan
