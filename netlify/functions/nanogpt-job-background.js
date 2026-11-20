@@ -61,6 +61,28 @@ exports.handler = async (event) => {
     };
 
     try {
+        if (kind === 'probe') {
+            // Diagnostic: mark every step so a hang localizes to one stage.
+            await put({ status: 'working', stage: 'probe-start' });
+            const chatRes = await fetch(CHAT_URL, {
+                method: 'POST', headers,
+                body: JSON.stringify({ model: 'openai/gpt-4o-mini', messages: [{ role: 'user', content: 'Reply with the JSON {"ok": true}' }], response_format: { type: 'json_object' } }),
+                signal: AbortSignal.timeout(60000)
+            });
+            await put({ status: 'working', stage: `probe-chat-headers-${chatRes.status}` });
+            const chatText = await chatRes.text();
+            await put({ status: 'working', stage: `probe-chat-body-${chatText.length}` });
+            const imgRes = await fetch(IMAGE_URL, {
+                method: 'POST', headers,
+                body: JSON.stringify({ model: 'bytedance/seedream-v5.5', prompt: 'a red circle on white', size: '1k', n: 1 }),
+                signal: AbortSignal.timeout(180000)
+            });
+            await put({ status: 'working', stage: `probe-image-headers-${imgRes.status}` });
+            const imgText = await imgRes.text();
+            await put({ status: 'done', result: { probe: true, imageBodyLength: imgText.length, imageBodyStart: imgText.slice(0, 120) } });
+            return { statusCode: 202 };
+        }
+
         if (kind === 'chat') {
             if (process.env.NANOGPT_TEXT_MODEL) body.model = process.env.NANOGPT_TEXT_MODEL;
             await put({ status: 'working', stage: 'generating' });
