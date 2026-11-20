@@ -73,7 +73,6 @@ export default function StoryCreator({ onClose, onStoryGenerated, onPageUpdate }
     const [childName, setChildName] = useState(draft?.childName || '');
     const [childAge, setChildAge] = useState(draft?.childAge || '');
     const [storyPrompt, setStoryPrompt] = useState(draft?.storyPrompt || '');
-    const [length, setLength] = useState('short');
     const [loadingText, setLoadingText] = useState('');
     const [error, setError] = useState(null);
 
@@ -113,7 +112,7 @@ export default function StoryCreator({ onClose, onStoryGenerated, onPageUpdate }
         setProgress(5);
 
         try {
-            const pageCount = length === 'short' ? 5 : 10;
+            const pageCount = 24;
 
             // Step 1 & 2: Parallelize photo analysis AND story generation for speed!
             setLoadingText('Preparing your magical story...');
@@ -348,21 +347,12 @@ export default function StoryCreator({ onClose, onStoryGenerated, onPageUpdate }
                             <div className="form-group">
                                 <label>Story Length</label>
                                 <div className="radio-group">
-                                    {['short', 'long'].map(len => (
-                                        <label key={len} className="radio-option">
-                                            <input
-                                                type="radio"
-                                                name="length"
-                                                value={len}
-                                                checked={length === len}
-                                                onChange={(e) => setLength(e.target.value)}
-                                            />
-                                            <span className="radio-label">
-                                                <strong>{len.charAt(0).toUpperCase() + len.slice(1)}</strong>
-                                                <small>{len === 'short' ? '5 pages' : '10 pages'}</small>
-                                            </span>
-                                        </label>
-                                    ))}
+                                    <div className="radio-option">
+                                        <span className="radio-label">
+                                            <strong>Full picture book</strong>
+                                            <small>24 story pages</small>
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
 
@@ -424,7 +414,7 @@ export default function StoryCreator({ onClose, onStoryGenerated, onPageUpdate }
                                     marginTop: '1rem',
                                     textAlign: 'center'
                                 }}>
-                                    ⏱️ This might take 4-5 minutes. Please don't close your browser!
+                                    ⏱️ This might take about 10 minutes — we're illustrating a full 24-page book. Please don't close your browser!
                                 </p>
                             </div>
                         </div>

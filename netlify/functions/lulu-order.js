@@ -38,6 +38,20 @@ async function recordStatus(event, ref, data) {
     }
 }
 
+// The client uploads the interior's real page count as meta alongside the
+// PDFs (a full-length story runs past the tier minimum). Fall back to the
+// tier minimum when no meta was stored.
+async function readPageCount(event, ref, tier) {
+    try {
+        try { connectLambda(event); } catch { /* already connected */ }
+        const store = getStore('book-files');
+        const meta = await store.get(`${ref}/meta`, { type: 'json' });
+        const n = Number(meta?.pageCount);
+        if (Number.isFinite(n) && n >= 24 && n <= 400) return Math.round(n);
+    } catch { /* fall through to the tier default */ }
+    return PAGE_COUNTS[tier];
+}
+
 const CORS_HEADERS = {
     'Content-Type': 'application/json',
     'Access-Control-Allow-Origin': '*',
@@ -105,6 +119,7 @@ exports.handler = async (event) => {
     const tier = body.tier === 'softcover' ? 'softcover' : 'hardcover';
     const bookRef = body.bookRef;
     if (!bookRef) return json(422, { error: 'missing_book_ref', message: 'No book files were uploaded for this order.' });
+    const pageCount = await readPageCount(event, bookRef, tier);
     if (!process.env.URL) return json(501, { error: 'not_configured', message: 'Site URL env missing.' });
 
     const base = process.env.LULU_API_BASE || 'https://api.sandbox.lulu.com';
@@ -140,7 +155,7 @@ exports.handler = async (event) => {
             method: 'POST',
             headers: authHeaders,
             body: JSON.stringify({
-                line_items: [{ pod_package_id: PACKAGES[tier], page_count: PAGE_COUNTS[tier], quantity: 1 }],
+                line_items: [{ pod_package_id: PACKAGES[tier], page_count: pageCount, quantity: 1 }],
                 shipping_address: shippingAddress,
                 shipping_level: shippingLevel
             }),

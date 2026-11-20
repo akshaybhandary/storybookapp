@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { saveAs } from 'file-saver';
 import { saveStory, isStorySaved } from '../services/storageService';
 import { generateEPUB } from '../utils/epubGenerator';
-import { buildPrintPdf, buildCoverPdf } from '../utils/printPdf';
+import { buildPrintPdf, buildPrintPdfWithCount, buildCoverPdf } from '../utils/printPdf';
 import { startCheckout } from '../services/checkoutService';
 import { usePricing } from '../utils/pricing';
 
@@ -131,10 +131,13 @@ export default function StoryViewer({ story, onClose, onStorySaved, isGenerating
             for (const p of storyPages) {
                 book.pages.push({ image: await toPrintJpeg(p.image), text: p.text });
             }
-            // Interior page counts must match lulu-order.js PAGE_COUNTS.
-            const pageCount = tier === 'hardcover' ? 24 : 32;
-            const interior = buildPrintPdf(book, pageCount, { pageSizePt: 630, covers: 'lulu' });
-            const dimsRes = await fetch(`/.netlify/functions/lulu-cover-dims?tier=${tier}`);
+            // Minimum interior counts (Lulu's hardcover minimum is 24;
+            // paperback needs 32 for a printable spine). A full 24-page
+            // story runs past both on its own — the builder returns the
+            // real count, and the cover size and Lulu cost use that.
+            const minPages = tier === 'hardcover' ? 24 : 32;
+            const { pdf: interior, pageCount } = buildPrintPdfWithCount(book, minPages, { pageSizePt: 630, covers: 'lulu' });
+            const dimsRes = await fetch(`/.netlify/functions/lulu-cover-dims?tier=${tier}&pages=${pageCount}`);
             const dims = await dimsRes.json().catch(() => ({}));
             const coverPdf = buildCoverPdf(
                 { ...book, backImage: book.pages[0]?.image },
@@ -147,6 +150,7 @@ export default function StoryViewer({ story, onClose, onStorySaved, isGenerating
             setOrderMessage('Uploading your print files…');
             await uploadBookFile(orderRef, 'interior', interior);
             await uploadBookFile(orderRef, 'cover', coverPdf);
+            await uploadBookFile(orderRef, 'meta', new TextEncoder().encode(JSON.stringify({ pageCount })));
             const { url } = await startCheckout(tier, { bookRef: orderRef });
             window.location.href = url;
         } catch (err) {

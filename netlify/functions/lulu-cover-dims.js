@@ -41,6 +41,10 @@ exports.handler = async (event) => {
     if (event.httpMethod !== 'GET') return json(405, { error: 'Method not allowed' });
 
     const tier = event.queryStringParameters?.tier === 'softcover' ? 'softcover' : 'hardcover';
+    const pagesParam = parseInt(event.queryStringParameters?.pages, 10);
+    const pageCount = Number.isFinite(pagesParam)
+        ? Math.min(400, Math.max(24, pagesParam))
+        : PAGE_COUNTS[tier];
     const clientId = process.env.LULU_CLIENT_ID || process.env.lulu_client_id;
     const clientSecret = process.env.LULU_CLIENT_SECRET || process.env.lulu_client_secret;
     if (!clientId || !clientSecret) {
@@ -67,7 +71,7 @@ exports.handler = async (event) => {
             headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 pod_package_id: PACKAGES[tier],
-                interior_page_count: PAGE_COUNTS[tier]
+                interior_page_count: pageCount
                 // No unit field: 'PT' is rejected as an invalid choice and
                 // the API default is points.
             }),
@@ -82,7 +86,7 @@ exports.handler = async (event) => {
         // Lulu returns only the total cover size. Both house SKUs use
         // 444-ppi paper, so the spine is pages / 444 in points — a few
         // points at these page counts (blank spine, full-bleed art).
-        const spinePt = Math.round((PAGE_COUNTS[tier] / 444) * 72);
+        const spinePt = Math.round((pageCount / 444) * 72);
         return json(200, { widthPt, heightPt, spinePt, source: 'lulu' });
     } catch (error) {
         console.error('cover-dims error:', error);

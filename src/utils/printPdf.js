@@ -306,6 +306,13 @@ function backCoverPage(book, imgName, dims) {
 //   covers       'included' (default — cover is page 1, back cover is last)
 //                or 'lulu' (omit both: Lulu wants a separate cover file)
 export function buildPrintPdf(book, targetPages = 24, options = {}) {
+    return buildPrintPdfWithCount(book, targetPages, options).pdf;
+}
+
+// Same build, but also returns the real interior page count. The Lulu
+// cover size and the print-job cost depend on that count, and a
+// full-length story runs past the minimum target on its own.
+export function buildPrintPdfWithCount(book, targetPages = 24, options = {}) {
     const prevPage = PAGE;
     if (options.pageSizePt) PAGE = options.pageSizePt;
     try {
@@ -360,9 +367,10 @@ function buildPrintPdfInner(book, targetPages = 24, options = {}) {
     tail.push(() => endpaperPage(book, false));
     if (options.covers !== 'lulu') tail.push(() => backCoverPage(book, story[0]?._imgName, dims));
 
-    // Insert gallery pages, then pad with extra activity/gallery pages
-    // until the target page count is reached.
-    const assembled = [...pages, ...galleryBuilders, ...tail];
+    // Insert gallery pages (capped at 2 — a full-length story carries the
+    // book on its own), then pad with extra activity/gallery pages until
+    // the target page count is reached.
+    const assembled = [...pages, ...galleryBuilders.slice(0, 2), ...tail];
     let padIndex = 0;
     while (assembled.length < targetPages) {
         const filler = padIndex % 2 === 0 && galleryBuilders.length
@@ -448,7 +456,7 @@ function buildPrintPdfInner(book, targetPages = 24, options = {}) {
         out.set(c, pos);
         pos += c.length;
     }
-    return out;
+    return { pdf: out, pageCount: assembled.length };
 }
 
 export const PRINT_PAGE_SIZE_PT = PAGE;

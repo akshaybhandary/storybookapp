@@ -51,10 +51,16 @@ exports.handler = async (event) => {
             return json(400, { error: 'Invalid JSON body' });
         }
         if (!/^[A-Za-z0-9-]{8,64}$/.test(orderRef || '')) return json(400, { error: 'Invalid orderRef' });
-        if (part !== 'interior' && part !== 'cover') return json(400, { error: 'Invalid part' });
+        if (part !== 'interior' && part !== 'cover' && part !== 'meta') return json(400, { error: 'Invalid part' });
         if (!dataBase64 || typeof dataBase64 !== 'string') return json(400, { error: 'Missing dataBase64' });
         const bytes = Buffer.from(dataBase64, 'base64');
-        if (bytes.length < 1000) return json(400, { error: 'File too small to be a PDF' });
+        if (part === 'meta') {
+            // Small JSON (the interior page count) that lulu-order reads
+            // back from the store when it builds the print job.
+            if (bytes.length < 2 || bytes.length > 4096) return json(400, { error: 'Invalid meta' });
+        } else if (bytes.length < 1000) {
+            return json(400, { error: 'File too small to be a PDF' });
+        }
         await store.set(`${orderRef}/${part}`, bytes);
         return json(200, { ok: true, size: bytes.length });
     }
