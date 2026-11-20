@@ -34,6 +34,24 @@ const ESTIMATES = {
     softcover: { widthPt: 1247, heightPt: 630, spinePt: 6 }
 };
 
+// Lulu credentials + API base. Production keys (lulu_client_id_prod /
+// lulu_client_secret_prod) win when present and imply the production
+// API; otherwise the sandbox keys are used. LULU_API_BASE overrides.
+// Keep in sync with lulu-order.js.
+function resolveLulu() {
+    const prodId = process.env.lulu_client_id_prod;
+    const prodKey = process.env.lulu_client_secret_prod;
+    const upperKey = process.env.LULU_CLIENT_SECRET;
+    if (prodId && prodKey) {
+        return { clientId: prodId, clientSecret: prodKey, base: process.env.LULU_API_BASE || 'https://api.lulu.com' };
+    }
+    return {
+        clientId: process.env.LULU_CLIENT_ID || process.env.lulu_client_id,
+        clientSecret: upperKey || process.env.lulu_client_secret,
+        base: process.env.LULU_API_BASE || 'https://api.sandbox.lulu.com'
+    };
+}
+
 exports.handler = async (event) => {
     if (event.httpMethod === 'OPTIONS') {
         return { statusCode: 204, headers: CORS_HEADERS, body: '' };
@@ -45,13 +63,14 @@ exports.handler = async (event) => {
     const pageCount = Number.isFinite(pagesParam)
         ? Math.min(400, Math.max(24, pagesParam))
         : PAGE_COUNTS[tier];
-    const clientId = process.env.LULU_CLIENT_ID || process.env.lulu_client_id;
-    const clientSecret = process.env.LULU_CLIENT_SECRET || process.env.lulu_client_secret;
+    const lulu = resolveLulu();
+    const clientId = lulu.clientId;
+    const clientSecret = lulu.clientSecret;
     if (!clientId || !clientSecret) {
         return json(200, { ...ESTIMATES[tier], source: 'estimate' });
     }
 
-    const base = process.env.LULU_API_BASE || 'https://api.sandbox.lulu.com';
+    const base = lulu.base;
     try {
         const tokenRes = await fetch(`${base}/auth/realms/glasstree/protocol/openid-connect/token`, {
             method: 'POST',

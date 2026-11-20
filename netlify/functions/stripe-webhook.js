@@ -131,7 +131,7 @@ exports.handler = async (event) => {
     // FULFILMENT_SECRET on both sides plus Lulu credentials before it will
     // do anything, so this call is safe before print is fully wired.
     const isPrint = order.tier === 'softcover' || order.tier === 'hardcover';
-    const hasLuluCreds = process.env.LULU_CLIENT_ID || process.env.lulu_client_id;
+    const hasLuluCreds = process.env.LULU_CLIENT_ID || process.env.lulu_client_id || process.env.lulu_client_id_prod;
     if (isPrint && hasLuluCreds && process.env.FULFILMENT_SECRET && process.env.URL) {
         try {
             const res = await fetch(`${process.env.URL}/.netlify/functions/lulu-order`, {

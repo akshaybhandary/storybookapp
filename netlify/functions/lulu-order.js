@@ -93,6 +93,23 @@ function mapAddress(body) {
     return addr;
 }
 
+// Lulu credentials + API base. Production keys (lulu_client_id_prod /
+// lulu_client_secret_prod) win when present and imply the production
+// API; otherwise the sandbox keys are used. LULU_API_BASE overrides.
+function resolveLulu() {
+    const prodId = process.env.lulu_client_id_prod;
+    const prodKey = process.env.lulu_client_secret_prod;
+    const upperKey = process.env.LULU_CLIENT_SECRET;
+    if (prodId && prodKey) {
+        return { clientId: prodId, clientSecret: prodKey, base: process.env.LULU_API_BASE || 'https://api.lulu.com' };
+    }
+    return {
+        clientId: process.env.LULU_CLIENT_ID || process.env.lulu_client_id,
+        clientSecret: upperKey || process.env.lulu_client_secret,
+        base: process.env.LULU_API_BASE || 'https://api.sandbox.lulu.com'
+    };
+}
+
 exports.handler = async (event) => {
     if (event.httpMethod === 'OPTIONS') {
         return { statusCode: 204, headers: CORS_HEADERS, body: '' };
@@ -103,8 +120,9 @@ exports.handler = async (event) => {
     if (!fulfilmentSecret) return json(501, { error: 'not_configured', message: 'Print fulfilment is disabled.' });
     if (event.headers['x-fulfilment-secret'] !== fulfilmentSecret) return json(403, { error: 'Forbidden' });
 
-    const clientId = process.env.LULU_CLIENT_ID || process.env.lulu_client_id;
-    const clientSecret = process.env.LULU_CLIENT_SECRET || process.env.lulu_client_secret;
+    const lulu = resolveLulu();
+    const clientId = lulu.clientId;
+    const clientSecret = lulu.clientSecret;
     if (!clientId || !clientSecret) {
         return json(501, { error: 'not_configured', message: 'Lulu credentials are not set.' });
     }
@@ -122,7 +140,7 @@ exports.handler = async (event) => {
     const pageCount = await readPageCount(event, bookRef, tier);
     if (!process.env.URL) return json(501, { error: 'not_configured', message: 'Site URL env missing.' });
 
-    const base = process.env.LULU_API_BASE || 'https://api.sandbox.lulu.com';
+    const base = lulu.base;
     const shippingLevel = process.env.LULU_SHIPPING_LEVEL || 'MAIL';
     const shippingAddress = mapAddress(body);
     const lineItem = {
@@ -168,6 +186,10 @@ exports.handler = async (event) => {
             return json(502, { error: 'cost_calculation_failed', detail: cost });
         }
         console.log(`LULU_COST session=${body.stripeSessionId || ''} total=${cost.total_cost_incl_tax ?? cost.total_cost_excl_tax ?? '?'} ${cost.currency || ''}`);
+        if (body.dryRun) {
+            // Cost preview only — no print job is created.
+            return json(200, { ok: true, dryRun: true, environment: base.includes('sandbox') ? 'sandbox' : 'production', cost });
+        }
 
         // 3. Create the print job
         const jobRes = await fetch(`${base}/print-jobs/`, {
