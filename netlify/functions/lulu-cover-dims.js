@@ -8,6 +8,7 @@
 // With Lulu credentials configured it asks Lulu's /cover-dimensions/
 // endpoint; before that it returns clearly-marked estimates so the flow
 // can still be built and tested end to end.
+// Note: Netlify functions only pick up new env vars after a redeploy.
 
 const CORS_HEADERS = {
     'Content-Type': 'application/json',
