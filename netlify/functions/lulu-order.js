@@ -134,6 +134,32 @@ exports.handler = async (event) => {
         return json(400, { error: 'Invalid JSON body' });
     }
 
+    // Read an existing print job + its status (diagnostics).
+    if (body.jobStatusId) {
+        try {
+            const tokenRes = await fetch(`${lulu.base}/auth/realms/glasstree/protocol/openid-connect/token`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({
+                    grant_type: 'client_credentials',
+                    client_id: clientId,
+                    client_secret: clientSecret
+                }).toString(),
+                signal: AbortSignal.timeout(20000)
+            });
+            const token = (await tokenRes.json().catch(() => ({})))?.access_token;
+            if (!token) return json(502, { error: 'lulu_auth_failed' });
+            const authHeaders = { Authorization: `Bearer ${token}` };
+            const stRes = await fetch(`${lulu.base}/print-jobs/${encodeURIComponent(body.jobStatusId)}/status/`, { headers: authHeaders, signal: AbortSignal.timeout(20000) });
+            const status = await stRes.json().catch(() => ({}));
+            const jobRes = await fetch(`${lulu.base}/print-jobs/${encodeURIComponent(body.jobStatusId)}/`, { headers: authHeaders, signal: AbortSignal.timeout(20000) });
+            const job = await jobRes.json().catch(() => ({}));
+            return json(200, { ok: true, status, jobErrors: job.errors || job.error_messages || null, jobStatus: job.status || null });
+        } catch (err) {
+            return json(502, { error: 'status_failed', detail: String((err && err.message) || err).slice(0, 200) });
+        }
+    }
+
     // Cancel an existing print job (works while it is still inside its
     // production hold / before printing starts).
     if (body.cancelJobId) {
