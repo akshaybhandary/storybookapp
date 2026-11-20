@@ -138,6 +138,8 @@ exports.handler = async (event) => {
     // Print orders need a delivery address for the print partner, and carry a
     // flat shipping charge (session currency) until real rates are wired.
     if (isPrint) {
+        // Lulu requires a phone number on the shipping address.
+        params.set('phone_number_collection[enabled]', 'true');
         params.set('shipping_address_collection[allowed_countries][0]', 'US');
         params.set('shipping_address_collection[allowed_countries][1]', 'CA');
         params.set('shipping_address_collection[allowed_countries][2]', 'GB');

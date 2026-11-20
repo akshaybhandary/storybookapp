@@ -118,6 +118,8 @@ exports.handler = async (event) => {
         email: session.customer_details?.email || null,
         customerName: session.customer_details?.name || shipping?.name || null,
         shippingAddress: shipping?.address || null,
+        phone: session.customer_details?.phone || null,
+        bookRef: session.metadata?.book_ref || null,
         paymentStatus: session.payment_status
     };
 
@@ -129,7 +131,8 @@ exports.handler = async (event) => {
     // FULFILMENT_SECRET on both sides plus Lulu credentials before it will
     // do anything, so this call is safe before print is fully wired.
     const isPrint = order.tier === 'softcover' || order.tier === 'hardcover';
-    if (isPrint && process.env.LULU_CLIENT_ID && process.env.FULFILMENT_SECRET && process.env.URL) {
+    const hasLuluCreds = process.env.LULU_CLIENT_ID || process.env.lulu_client_id;
+    if (isPrint && hasLuluCreds && process.env.FULFILMENT_SECRET && process.env.URL) {
         try {
             const res = await fetch(`${process.env.URL}/.netlify/functions/lulu-order`, {
                 method: 'POST',
@@ -142,7 +145,9 @@ exports.handler = async (event) => {
                     tier: order.tier,
                     stripeSessionId: order.sessionId,
                     shippingAddress: order.shippingAddress,
-                    shippingName: order.customerName
+                    shippingName: order.customerName,
+                    phone: order.phone,
+                    bookRef: order.bookRef
                 })
             });
             const result = await res.json().catch(() => ({}));

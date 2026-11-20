@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { saveAs } from 'file-saver';
 import { saveStory, isStorySaved } from '../services/storageService';
 import { generateEPUB } from '../utils/epubGenerator';
-import { buildPrintPdf } from '../utils/printPdf';
+import { buildPrintPdf, buildCoverPdf } from '../utils/printPdf';
 import { startCheckout } from '../services/checkoutService';
 import { usePricing } from '../utils/pricing';
 
@@ -23,6 +23,42 @@ async function toJpegDataUrl(src, quality = 0.9) {
     return canvas.toDataURL('image/jpeg', quality);
 }
 
+// Print images are capped at 1180px / quality 0.82 so a full book's
+// interior PDF stays ~2.5 MB — the upload endpoint has a ~6 MB ceiling.
+async function toPrintJpeg(src) {
+    if (!src) return null;
+    const img = new Image();
+    await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+        img.src = src;
+    });
+    const scale = Math.min(1, 1180 / Math.max(img.naturalWidth, img.naturalHeight));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(img.naturalWidth * scale);
+    canvas.height = Math.round(img.naturalHeight * scale);
+    canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL('image/jpeg', 0.82);
+}
+
+function bytesToBase64(bytes) {
+    let bin = '';
+    const CHUNK = 0x8000;
+    for (let i = 0; i < bytes.length; i += CHUNK) {
+        bin += String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK));
+    }
+    return btoa(bin);
+}
+
+async function uploadBookFile(orderRef, part, bytes) {
+    const res = await fetch('/.netlify/functions/book-files', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderRef, part, dataBase64: bytesToBase64(bytes) })
+    });
+    if (!res.ok) throw new Error('Could not upload the print files. Please try again.');
+}
+
 export default function StoryViewer({ story, onClose, onStorySaved, isGenerating = false }) {
     const [currentPage, setCurrentPage] = useState(0);
     const [isSaved, setIsSaved] = useState(false);
@@ -30,6 +66,7 @@ export default function StoryViewer({ story, onClose, onStorySaved, isGenerating
     const [isBuildingPdf, setIsBuildingPdf] = useState(false);
     const [digitalPaid, setDigitalPaid] = useState(false);
     const [orderMessage, setOrderMessage] = useState(null);
+    const [isPreparingPrint, setIsPreparingPrint] = useState(false);
     const pricing = usePricing();
 
     // Digital downloads (PDF + eBook) unlock per-book after the digital
@@ -73,13 +110,44 @@ export default function StoryViewer({ story, onClose, onStorySaved, isGenerating
         window.print();
     };
 
-    // Order a printed copy via the Stripe checkout function.
-    // Until payments are configured the function returns 501 and we show a
-    // friendly "coming soon" instead of an error.
+    // Order a printed copy. Lulu prints from PDFs hosted at public URLs, so
+    // the flow is: build the interior + cover PDFs, upload them under a
+    // fresh order reference, then start Stripe checkout with that reference
+    // attached — the webhook hands it to the print order after payment.
     const handleOrderPrint = async (tier) => {
         setOrderMessage(null);
+        setIsPreparingPrint(true);
         try {
-            const { url } = await startCheckout(tier);
+            setOrderMessage('Preparing your print files…');
+            const orderRef = crypto.randomUUID();
+            const cover = story.pages?.find((p) => p.isCover);
+            const storyPages = (story.pages || []).filter((p) => !p.isCover);
+            const book = {
+                title: story.title,
+                childName: story.childName,
+                coverImage: await toPrintJpeg(cover?.image),
+                pages: []
+            };
+            for (const p of storyPages) {
+                book.pages.push({ image: await toPrintJpeg(p.image), text: p.text });
+            }
+            // Interior page counts must match lulu-order.js PAGE_COUNTS.
+            const pageCount = tier === 'hardcover' ? 24 : 32;
+            const interior = buildPrintPdf(book, pageCount, { pageSizePt: 630, covers: 'lulu' });
+            const dimsRes = await fetch(`/.netlify/functions/lulu-cover-dims?tier=${tier}`);
+            const dims = await dimsRes.json().catch(() => ({}));
+            const coverPdf = buildCoverPdf(
+                { ...book, backImage: book.pages[0]?.image },
+                {
+                    widthPt: dims.widthPt || (tier === 'hardcover' ? 1300 : 1247),
+                    heightPt: dims.heightPt || (tier === 'hardcover' ? 668 : 630),
+                    spinePt: dims.spinePt || (tier === 'hardcover' ? 40 : 6)
+                }
+            );
+            setOrderMessage('Uploading your print files…');
+            await uploadBookFile(orderRef, 'interior', interior);
+            await uploadBookFile(orderRef, 'cover', coverPdf);
+            const { url } = await startCheckout(tier, { bookRef: orderRef });
             window.location.href = url;
         } catch (err) {
             if (err.notConfigured) {
@@ -87,6 +155,8 @@ export default function StoryViewer({ story, onClose, onStorySaved, isGenerating
             } else {
                 setOrderMessage(err.message);
             }
+        } finally {
+            setIsPreparingPrint(false);
         }
     };
 
@@ -224,18 +294,18 @@ export default function StoryViewer({ story, onClose, onStorySaved, isGenerating
                             <button
                                 className="action-btn order-print-btn"
                                 onClick={() => handleOrderPrint('softcover')}
-                                disabled={isGenerating}
+                                disabled={isGenerating || isPreparingPrint}
                                 title="Quality 8.5&quot; x 8.5&quot; softcover, shipped to you"
                             >
-                                🛒 Order Softcover — {pricing.symbol}{pricing.prices.softcover} {pricing.label}
+                                {isPreparingPrint ? 'Preparing print files…' : `🛒 Order Softcover — ${pricing.symbol}${pricing.prices.softcover} ${pricing.label}`}
                             </button>
                             <button
                                 className="action-btn order-print-btn"
                                 onClick={() => handleOrderPrint('hardcover')}
-                                disabled={isGenerating}
+                                disabled={isGenerating || isPreparingPrint}
                                 title="Beautiful 8.5&quot; x 8.5&quot; hardcover, shipped to you"
                             >
-                                🛒 Order Hardcover — {pricing.symbol}{pricing.prices.hardcover} {pricing.label}
+                                {isPreparingPrint ? 'Preparing print files…' : `🛒 Order Hardcover — ${pricing.symbol}${pricing.prices.hardcover} ${pricing.label}`}
                             </button>
                         </div>
                         {orderMessage && <div className="order-message">{orderMessage}</div>}

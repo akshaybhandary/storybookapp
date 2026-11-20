@@ -17,7 +17,7 @@
 //   // pages: [{ image, text }] — image is a JPEG data URL / bytes / null
 // Returns a Uint8Array with the complete PDF file.
 
-const PAGE = 612; // 8.5in at 72pt
+let PAGE = 612; // 8.5in at 72pt — mutable so Lulu builds can use the bleed size
 const MARGIN = 48;
 
 // ---------- small helpers ----------
@@ -300,7 +300,22 @@ function backCoverPage(book, imgName, dims) {
 
 // ---------- assembly ----------
 
-export function buildPrintPdf(book, targetPages = 24) {
+// options:
+//   pageSizePt   page size in points (612 = exact trim; 630 = trim + bleed
+//                for Lulu interiors)
+//   covers       'included' (default — cover is page 1, back cover is last)
+//                or 'lulu' (omit both: Lulu wants a separate cover file)
+export function buildPrintPdf(book, targetPages = 24, options = {}) {
+    const prevPage = PAGE;
+    if (options.pageSizePt) PAGE = options.pageSizePt;
+    try {
+        return buildPrintPdfInner(book, targetPages, options);
+    } finally {
+        PAGE = prevPage;
+    }
+}
+
+function buildPrintPdfInner(book, targetPages = 24, options = {}) {
     const dims = new Map();
     const images = []; // {name, bytes, width, height}
     let imgSeq = 0;
@@ -321,7 +336,7 @@ export function buildPrintPdf(book, targetPages = 24) {
 
     // Ordered page builders: {content} — images referenced by name.
     const pages = [];
-    pages.push(() => coverPage(book, coverName));
+    if (options.covers !== 'lulu') pages.push(() => coverPage(book, coverName));
     pages.push(() => endpaperPage(book, true));
     pages.push(() => titlePage(book));
     pages.push(() => copyrightPage(book));
@@ -343,7 +358,7 @@ export function buildPrintPdf(book, targetPages = 24) {
     const activityBuilder = () => activityPage(++activityCount);
     tail.push(activityBuilder);
     tail.push(() => endpaperPage(book, false));
-    tail.push(() => backCoverPage(book, story[0]?._imgName, dims));
+    if (options.covers !== 'lulu') tail.push(() => backCoverPage(book, story[0]?._imgName, dims));
 
     // Insert gallery pages, then pad with extra activity/gallery pages
     // until the target page count is reached.
@@ -437,3 +452,129 @@ export function buildPrintPdf(book, targetPages = 24) {
 }
 
 export const PRINT_PAGE_SIZE_PT = PAGE;
+
+// ---------- Lulu cover spread ----------
+
+// Lulu wants the cover as ONE page: back cover + spine + front cover, at an
+// exact size that depends on the product and the interior page count (spine
+// width). Get the size from the lulu-cover-dims function (Lulu's own
+// /cover-dimensions/ endpoint) and pass it in:
+//   buildCoverPdf(book, { widthPt, heightPt, spinePt })
+// book: { title, childName, coverImage, backImage } — JPEG data URLs/bytes.
+export function buildCoverPdf(book, dims) {
+    const W = dims.widthPt;
+    const H = dims.heightPt;
+    const spine = dims.spinePt || 0;
+    const panelW = (W - spine) / 2;
+    const frontX = panelW + spine;
+
+    const imgDims = new Map();
+    const images = [];
+    let seq = 0;
+    function register(image) {
+        const bytes = toBytes(image);
+        if (!bytes) return null;
+        const name = `Im${++seq}`;
+        const d = jpegDimensions(bytes);
+        imgDims.set(name, d);
+        images.push({ name, bytes, ...d });
+        return name;
+    }
+    const frontName = register(book.coverImage);
+    const backName = register(book.backImage || book.coverImage);
+
+    function imageBox(imgName, x, y, w, h) {
+        if (!imgName) return '';
+        const d = imgDims.get(imgName);
+        const scale = Math.max(w / d.width, h / d.height);
+        const dw = d.width * scale;
+        const dh = d.height * scale;
+        const dx = x + (w - dw) / 2;
+        const dy = y + (h - dh) / 2;
+        return `q ${x} ${y} ${w} ${h} re W n ${dw.toFixed(1)} 0 0 ${dh.toFixed(1)} ${dx.toFixed(1)} ${dy.toFixed(1)} cm /${imgName} Do Q `;
+    }
+    function textCentered(str, size, font, cx, y, color) {
+        const w = textWidth(str, size);
+        return `BT /${font} ${size} Tf ${color} rg 1 0 0 1 ${(cx - w / 2).toFixed(1)} ${y.toFixed(1)} Tm (${escapeText(str)}) Tj ET `;
+    }
+
+    let s = '';
+    // Base + spine band
+    s += `0.93 0.89 0.97 rg 0 0 ${W} ${H} re f `;
+    s += `0.45 0.32 0.62 rg ${panelW} 0 ${spine} ${H} re f `;
+
+    // Back cover (left panel): art, blurb, site line
+    if (backName) s += imageBox(backName, panelW / 2 - 110, H - 330, 220, 220);
+    const blurb = wrapText('A storybook starring your child - their face and name woven into every page.', 14.5, panelW - 90);
+    let by = H - 385;
+    for (const line of blurb) {
+        s += textCentered(line, 14.5, 'F1', panelW / 2, by, '0.25 0.2 0.35');
+        by -= 22;
+    }
+    s += textCentered('Create yours at lumifables.com', 14, 'F2', panelW / 2, 92, '0.45 0.3 0.6');
+
+    // Spine: vertical title when the spine is wide enough to hold it
+    if (spine >= 26) {
+        const title = (book.title || 'My Storybook').slice(0, 40);
+        s += `BT /F2 11 Tf 1 1 1 rg 0 1 -1 0 ${panelW + spine / 2 + 4} ${H / 2 - textWidth(title, 11) / 2} Tm (${escapeText(title)}) Tj ET `;
+    }
+
+    // Front cover (right panel): full-bleed art + title block
+    if (frontName) s += imageBox(frontName, frontX, 0, panelW, H);
+    const titleLines = wrapText(book.title || 'My Storybook', 38, panelW - 80);
+    let ty = H - 96;
+    for (const pass of ['0.15 0.1 0.25', '1 1 1']) {
+        let y = ty;
+        for (const line of titleLines) {
+            s += textCentered(line, 38, 'F2', frontX + panelW / 2 + (pass === '1 1 1' ? 0 : 2), y - (pass === '1 1 1' ? 0 : 2), pass);
+            y -= 44;
+        }
+        if (pass === '1 1 1') ty = y;
+    }
+    s += textCentered(`Starring ${book.childName || 'Your Child'}`, 19, 'F1', frontX + panelW / 2, ty - 8, '1 1 1');
+
+    // ---- serialize a one-page PDF (same writer pattern as buildPrintPdf) ----
+    const objects = [];
+    function addObject(body) { objects.push(body); return objects.length; }
+    const fontReg = addObject('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>');
+    const fontBold = addObject('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>');
+    const imageObjNums = new Map();
+    for (const img of images) {
+        const header = `<< /Type /XObject /Subtype /Image /Width ${img.width} /Height ${img.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${img.bytes.length} >>`;
+        imageObjNums.set(img.name, addObject({ streamHeader: header, stream: img.bytes }));
+    }
+    const xobjectDict = images.map((img) => `/${img.name} ${imageObjNums.get(img.name)} 0 R`).join(' ');
+    const resources = `<< /Font << /F1 ${fontReg} 0 R /F2 ${fontBold} 0 R >> /XObject << ${xobjectDict} >> >>`;
+    const content = s.replace(/ETBT/g, 'ET BT');
+    const contentNum = addObject({ streamHeader: `<< /Length ${content.length} >>`, stream: new TextEncoder().encode(content) });
+    const pageNum = addObject(`<< /Type /Page /Parent PAGES_REF /MediaBox [0 0 ${W} ${H}] /Resources ${resources} /Contents ${contentNum} 0 R >>`);
+    const pagesNum = addObject(`<< /Type /Pages /Kids [${pageNum} 0 R] /Count 1 >>`);
+    const catalogNum = addObject(`<< /Type /Catalog /Pages ${pagesNum} 0 R >>`);
+    objects[pageNum - 1] = objects[pageNum - 1].replace('PAGES_REF', `${pagesNum} 0 R`);
+
+    const chunks = [];
+    let length = 0;
+    function push(data) {
+        const b = typeof data === 'string' ? new TextEncoder().encode(data) : data;
+        chunks.push(b);
+        length += b.length;
+    }
+    push('%PDF-1.4\n');
+    const offsets = [0];
+    objects.forEach((obj, idx) => {
+        offsets.push(length);
+        push(`${idx + 1} 0 obj\n`);
+        if (typeof obj === 'string') push(obj);
+        else { push(`${obj.streamHeader}\nstream\n`); push(obj.stream); push('\nendstream'); }
+        push('\nendobj\n');
+    });
+    const xrefStart = length;
+    push(`xref\n0 ${objects.length + 1}\n`);
+    push('0000000000 65535 f \n');
+    for (let i = 1; i <= objects.length; i++) push(`${String(offsets[i]).padStart(10, '0')} 00000 n \n`);
+    push(`trailer\n<< /Size ${objects.length + 1} /Root ${catalogNum} 0 R >>\nstartxref\n${xrefStart}\n%%EOF`);
+    const out = new Uint8Array(length);
+    let pos = 0;
+    for (const c of chunks) { out.set(c, pos); pos += c.length; }
+    return out;
+}

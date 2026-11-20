@@ -1,24 +1,29 @@
-// Netlify Function — Lulu Direct print-on-demand order scaffold.
+// Netlify Function — Lulu Print API order placement.
 //
-// Flow (once configured):
-//   1. Stripe webhook confirms payment for a printed tier
-//   2. We generate the print-ready PDF (8.5x8.5in)
-//   3. We call Lulu's API to create a print job that ships to the customer
+// Called ONLY by the Stripe webhook after a verified payment for a print
+// tier. Default-closed: the caller must send the FULFILMENT_SECRET as the
+// x-fulfilment-secret header, because this endpoint spends money.
 //
-// Environment variables (create a Lulu Direct account first —
-// https://www.lulu.com/create/ → API access gives you sandbox + live keys):
-//   LULU_CLIENT_ID            from Lulu Direct API credentials
-//   LULU_CLIENT_SECRET        from Lulu Direct API credentials
-//   LULU_PACKAGE_HARDCOVER    package_id for the 8.5x8.5 hardcover
-//   LULU_PACKAGE_SOFTCOVER    package_id for the 8.5x8.5 softcover
-//   FULFILMENT_SECRET         shared secret — REQUIRED. This endpoint spends
-//                             money (it places print orders), so it is
-//                             default-closed: callers (the Stripe webhook)
-//                             must send it as the x-fulfilment-secret header.
-//                             Until it is set the endpoint returns 501.
+// Flow:
+//   1. OAuth (client_credentials) against the Lulu API
+//   2. Cost calculation for the exact job — validates the SKU, the address
+//      and the shipping level before anything is committed
+//   3. Create the print job pointing at the book's PDF URLs (book-files
+//      function, HMAC-token guarded; the client uploaded the PDFs before
+//      checkout and passed the reference through Stripe metadata)
 //
-// The sandbox API base is https://api.sandbox.lulu.com, live is
-// https://api.lulu.com — we read LULU_API_BASE to choose.
+// Environment variables:
+//   LULU_CLIENT_ID / LULU_CLIENT_SECRET   Lulu API credentials (the
+//       lowercase spellings lulu_client_id / lulu_client_secret also work)
+//   LULU_API_BASE        default https://api.sandbox.lulu.com
+//                        (live: https://api.lulu.com)
+//   LULU_PACKAGE_HARDCOVER / LULU_PACKAGE_SOFTCOVER   pod_package_id SKUs
+//   LULU_SHIPPING_LEVEL  default MAIL
+//   LULU_PRODUCTION_DELAY_MIN  default 60 (cancel window before printing)
+//   FULFILMENT_SECRET    required shared secret (see above)
+//   URL                  the site's own URL (Netlify provides it)
+
+const crypto = require('crypto');
 
 const CORS_HEADERS = {
     'Content-Type': 'application/json',
@@ -27,62 +32,82 @@ const CORS_HEADERS = {
     'Access-Control-Allow-Headers': 'Content-Type'
 };
 
+function json(statusCode, obj) {
+    return { statusCode, headers: CORS_HEADERS, body: JSON.stringify(obj) };
+}
+
+// 8.5x8.5in: hardcover = Premium Color, 80# coated, casewrap, gloss;
+// softcover = Standard Color, 60# uncoated, paperback, matte.
+// Interior page counts must match what the client builds (StoryViewer):
+// hardcover minimum is 24, paperback needs 32 for a printable spine.
+const PACKAGES = {
+    hardcover: process.env.LULU_PACKAGE_HARDCOVER || '0850X0850FCPRECW080CW444GXX',
+    softcover: process.env.LULU_PACKAGE_SOFTCOVER || '0850X0850FCSTDPB060UW444MXX'
+};
+const PAGE_COUNTS = { hardcover: 24, softcover: 32 };
+
+function fileUrl(siteBase, ref, part) {
+    const token = crypto.createHmac('sha256', process.env.FULFILMENT_SECRET).update(`${ref}/${part}`).digest('hex');
+    return `${siteBase}/.netlify/functions/book-files?ref=${encodeURIComponent(ref)}&part=${part}&token=${token}`;
+}
+
+function mapAddress(body) {
+    const a = body.shippingAddress || {};
+    const addr = {
+        name: body.shippingName || 'Customer',
+        street1: a.line1 || '',
+        city: a.city || '',
+        state_code: a.state || '',
+        postcode: a.postal_code || '',
+        country_code: a.country || ''
+    };
+    if (a.line2) addr.street2 = a.line2;
+    if (body.phone) addr.phone_number = body.phone;
+    return addr;
+}
+
 exports.handler = async (event) => {
     if (event.httpMethod === 'OPTIONS') {
         return { statusCode: 204, headers: CORS_HEADERS, body: '' };
     }
-    if (event.httpMethod !== 'POST') {
-        return {
-            statusCode: 405,
-            headers: CORS_HEADERS,
-            body: JSON.stringify({ error: 'Method not allowed' })
-        };
-    }
+    if (event.httpMethod !== 'POST') return json(405, { error: 'Method not allowed' });
 
-    // Default-closed: this endpoint places paid print orders, so it only
-    // accepts calls carrying the shared fulfilment secret (sent by the
-    // Stripe webhook after a verified payment).
     const fulfilmentSecret = process.env.FULFILMENT_SECRET;
-    if (!fulfilmentSecret) {
-        return {
-            statusCode: 501,
-            headers: CORS_HEADERS,
-            body: JSON.stringify({
-                error: 'not_configured',
-                message: 'Print fulfilment is disabled — FULFILMENT_SECRET is not set.'
-            })
-        };
-    }
-    if (event.headers['x-fulfilment-secret'] !== fulfilmentSecret) {
-        return {
-            statusCode: 403,
-            headers: CORS_HEADERS,
-            body: JSON.stringify({ error: 'Forbidden' })
-        };
-    }
+    if (!fulfilmentSecret) return json(501, { error: 'not_configured', message: 'Print fulfilment is disabled.' });
+    if (event.headers['x-fulfilment-secret'] !== fulfilmentSecret) return json(403, { error: 'Forbidden' });
 
-    const { clientId, clientSecret } = {
-        clientId: process.env.LULU_CLIENT_ID,
-        clientSecret: process.env.LULU_CLIENT_SECRET
-    };
-
+    const clientId = process.env.LULU_CLIENT_ID || process.env.lulu_client_id;
+    const clientSecret = process.env.LULU_CLIENT_SECRET || process.env.lulu_client_secret;
     if (!clientId || !clientSecret) {
-        return {
-            statusCode: 501,
-            headers: CORS_HEADERS,
-            body: JSON.stringify({
-                error: 'not_configured',
-                message: 'Printed books are coming soon — print fulfillment is not configured yet.'
-            })
-        };
+        return json(501, { error: 'not_configured', message: 'Lulu credentials are not set.' });
     }
+
+    let body;
+    try {
+        body = JSON.parse(event.body || '{}');
+    } catch {
+        return json(400, { error: 'Invalid JSON body' });
+    }
+
+    const tier = body.tier === 'softcover' ? 'softcover' : 'hardcover';
+    const bookRef = body.bookRef;
+    if (!bookRef) return json(422, { error: 'missing_book_ref', message: 'No book files were uploaded for this order.' });
+    if (!process.env.URL) return json(501, { error: 'not_configured', message: 'Site URL env missing.' });
 
     const base = process.env.LULU_API_BASE || 'https://api.sandbox.lulu.com';
+    const shippingLevel = process.env.LULU_SHIPPING_LEVEL || 'MAIL';
+    const shippingAddress = mapAddress(body);
+    const lineItem = {
+        external_id: bookRef,
+        title: 'LumiFables Personalized Storybook',
+        cover: { source_url: fileUrl(process.env.URL, bookRef, 'cover') },
+        interior: { source_url: fileUrl(process.env.URL, bookRef, 'interior') },
+        pod_package_id: PACKAGES[tier],
+        quantity: 1
+    };
 
     try {
-        const body = JSON.parse(event.body || '{}');
-
-        // 1. OAuth token
+        // 1. OAuth
         const tokenRes = await fetch(`${base}/auth/realms/glasstree/protocol/openid-connect/token`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -90,54 +115,54 @@ exports.handler = async (event) => {
                 grant_type: 'client_credentials',
                 client_id: clientId,
                 client_secret: clientSecret
-            }).toString()
+            }).toString(),
+            signal: AbortSignal.timeout(20000)
         });
-        const token = (await tokenRes.json())?.access_token;
-        if (!token) throw new Error('Lulu auth failed');
+        const token = (await tokenRes.json().catch(() => ({})))?.access_token;
+        if (!token) throw new Error(`Lulu auth failed (${tokenRes.status})`);
+        const authHeaders = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
 
-        // 2. Create the print job. TODO when wiring the real flow:
-        //    - upload the print-ready PDF and pass its download URL in `file_url`
-        //    - map tier -> LULU_PACKAGE_HARDCOVER / LULU_PACKAGE_SOFTCOVER package_id
-        //    - pass the customer's shipping address from the Stripe order
+        // 2. Cost calculation — validates SKU/address/shipping before ordering
+        const costRes = await fetch(`${base}/print-job-cost-calculations/`, {
+            method: 'POST',
+            headers: authHeaders,
+            body: JSON.stringify({
+                line_items: [{ pod_package_id: PACKAGES[tier], page_count: PAGE_COUNTS[tier], quantity: 1 }],
+                shipping_address: shippingAddress,
+                shipping_level: shippingLevel
+            }),
+            signal: AbortSignal.timeout(30000)
+        });
+        const cost = await costRes.json().catch(() => ({}));
+        if (!costRes.ok) {
+            console.error('LULU_COST_FAILED ' + JSON.stringify(cost).slice(0, 500));
+            return json(502, { error: 'cost_calculation_failed', detail: cost });
+        }
+        console.log(`LULU_COST session=${body.stripeSessionId || ''} total=${cost.total_cost_incl_tax ?? cost.total_cost_excl_tax ?? '?'} ${cost.currency || ''}`);
+
+        // 3. Create the print job
         const jobRes = await fetch(`${base}/print-jobs/`, {
             method: 'POST',
-            headers: {
-                Authorization: `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            },
+            headers: authHeaders,
             body: JSON.stringify({
-                contact_email: body.contactEmail,
-                line_items: [
-                    {
-                        ...(body.lineItem || {})
-                    }
-                ],
-                shipping_address: body.shippingAddress,
-                shipping_level: body.shippingLevel || 'MAIL'
-            })
+                external_id: body.stripeSessionId || bookRef,
+                contact_email: body.contactEmail || 'hello@lumifables.com',
+                production_delay_minutes: Number(process.env.LULU_PRODUCTION_DELAY_MIN || 60),
+                line_items: [lineItem],
+                shipping_address: shippingAddress,
+                shipping_level: shippingLevel
+            }),
+            signal: AbortSignal.timeout(30000)
         });
-
-        const job = await jobRes.json();
+        const job = await jobRes.json().catch(() => ({}));
         if (!jobRes.ok) {
-            console.error('Lulu job error:', JSON.stringify(job));
-            return {
-                statusCode: 502,
-                headers: CORS_HEADERS,
-                body: JSON.stringify({ error: 'Print job creation failed' })
-            };
+            console.error('LULU_JOB_FAILED ' + JSON.stringify(job).slice(0, 500));
+            return json(502, { error: 'print_job_failed', detail: job });
         }
-
-        return {
-            statusCode: 200,
-            headers: CORS_HEADERS,
-            body: JSON.stringify({ orderId: job.id, status: job.status })
-        };
+        console.log(`LULU_JOB_CREATED session=${body.stripeSessionId || ''} job=${job.id} status=${job.status}`);
+        return json(200, { orderId: job.id, status: job.status });
     } catch (error) {
-        console.error('Lulu function error:', error);
-        return {
-            statusCode: 500,
-            headers: CORS_HEADERS,
-            body: JSON.stringify({ error: 'Internal server error' })
-        };
+        console.error('lulu-order error:', error);
+        return json(500, { error: 'Internal error', detail: error.message });
     }
 };
