@@ -63,10 +63,12 @@ exports.handler = async (event) => {
     try {
         if (kind === 'chat') {
             if (process.env.NANOGPT_TEXT_MODEL) body.model = process.env.NANOGPT_TEXT_MODEL;
+            await put({ status: 'working', stage: 'generating' });
             const res = await fetch(CHAT_URL, {
                 method: 'POST',
                 headers,
-                body: JSON.stringify(body)
+                body: JSON.stringify(body),
+                signal: AbortSignal.timeout(180000)
             });
             const data = await res.json().catch(() => ({}));
             if (!res.ok) {
@@ -80,10 +82,12 @@ exports.handler = async (event) => {
 
         if (kind === 'image') {
             if (process.env.NANOGPT_IMAGE_MODEL) body.model = process.env.NANOGPT_IMAGE_MODEL;
+            await put({ status: 'working', stage: 'generating' });
             const res = await fetch(IMAGE_URL, {
                 method: 'POST',
                 headers,
-                body: JSON.stringify(body)
+                body: JSON.stringify(body),
+                signal: AbortSignal.timeout(240000)
             });
             const data = await res.json().catch(() => ({}));
             if (!res.ok) {
@@ -103,7 +107,8 @@ exports.handler = async (event) => {
             }
             if (first.url) {
                 // Signed URLs expire (~24h) — download now, hand over base64.
-                const imgRes = await fetch(first.url);
+                await put({ status: 'working', stage: 'downloading' });
+                const imgRes = await fetch(first.url, { signal: AbortSignal.timeout(60000) });
                 if (!imgRes.ok) {
                     await put({ status: 'error', error: 'Failed to download generated image' });
                     return { statusCode: 202 };
