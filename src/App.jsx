@@ -21,6 +21,20 @@ function App() {
     const checkout = params.get('checkout');
     if (checkout === 'success' || checkout === 'cancelled') {
       setCheckoutNotice(checkout);
+      // Digital-tier purchases: StoryViewer stashes the book id before
+      // redirecting to Stripe. On success, unlock that book's downloads;
+      // on cancel, just drop the pending marker.
+      try {
+        const pending = localStorage.getItem('lumifables:pending-digital');
+        if (pending) {
+          if (checkout === 'success') {
+            const paid = JSON.parse(localStorage.getItem('lumifables:paid-digital') || '{}');
+            paid[pending] = new Date().toISOString();
+            localStorage.setItem('lumifables:paid-digital', JSON.stringify(paid));
+          }
+          localStorage.removeItem('lumifables:pending-digital');
+        }
+      } catch { /* storage unavailable — downloads stay locked */ }
       params.delete('checkout');
       params.delete('session_id');
       const query = params.toString();

@@ -1,15 +1,48 @@
 import { useState, useEffect } from 'react';
+import { saveAs } from 'file-saver';
 import { saveStory, isStorySaved } from '../services/storageService';
 import { generateEPUB } from '../utils/epubGenerator';
+import { buildPrintPdf } from '../utils/printPdf';
 import { startCheckout } from '../services/checkoutService';
 import { usePricing } from '../utils/pricing';
+
+// Convert an image data URL to JPEG (the PDF builder embeds JPEG directly).
+async function toJpegDataUrl(src, quality = 0.9) {
+    if (!src) return null;
+    if (src.startsWith('data:image/jpeg')) return src;
+    const img = new Image();
+    await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+        img.src = src;
+    });
+    const canvas = document.createElement('canvas');
+    canvas.width = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+    canvas.getContext('2d').drawImage(img, 0, 0);
+    return canvas.toDataURL('image/jpeg', quality);
+}
 
 export default function StoryViewer({ story, onClose, onStorySaved, isGenerating = false }) {
     const [currentPage, setCurrentPage] = useState(0);
     const [isSaved, setIsSaved] = useState(false);
     const [isGeneratingEbook, setIsGeneratingEbook] = useState(false);
+    const [isBuildingPdf, setIsBuildingPdf] = useState(false);
+    const [digitalPaid, setDigitalPaid] = useState(false);
     const [orderMessage, setOrderMessage] = useState(null);
     const pricing = usePricing();
+
+    // Digital downloads (PDF + eBook) unlock per-book after the digital
+    // checkout. App.jsx records the purchase in localStorage when Stripe
+    // redirects back with ?checkout=success.
+    useEffect(() => {
+        try {
+            const paid = JSON.parse(localStorage.getItem('lumifables:paid-digital') || '{}');
+            setDigitalPaid(!!paid[story.id]);
+        } catch {
+            setDigitalPaid(false);
+        }
+    }, [story.id]);
 
     // Calculate generation progress for loading indicator
     const totalPages = story.pages?.length || 0;
@@ -57,7 +90,26 @@ export default function StoryViewer({ story, onClose, onStorySaved, isGenerating
         }
     };
 
+    // Send the reader to Stripe for the digital tier, remembering which book
+    // the purchase belongs to so App.jsx can unlock it on return.
+    const startDigitalCheckout = async () => {
+        setOrderMessage(null);
+        try {
+            localStorage.setItem('lumifables:pending-digital', story.id);
+            const { url } = await startCheckout('digital', { bookRef: story.id });
+            window.location.href = url;
+        } catch (err) {
+            localStorage.removeItem('lumifables:pending-digital');
+            if (err.notConfigured) {
+                setOrderMessage('Digital downloads are launching soon! Join the waitlist on the homepage for $5 off your first order. 💌');
+            } else {
+                setOrderMessage(err.message);
+            }
+        }
+    };
+
     const handleDownloadEbook = async () => {
+        if (!digitalPaid) return startDigitalCheckout();
         setIsGeneratingEbook(true);
         try {
             await generateEPUB(story);
@@ -67,6 +119,34 @@ export default function StoryViewer({ story, onClose, onStorySaved, isGenerating
             alert('Failed to create eBook. Please try again.');
         } finally {
             setIsGeneratingEbook(false);
+        }
+    };
+
+    const handleDownloadPdf = async () => {
+        if (!digitalPaid) return startDigitalCheckout();
+        setIsBuildingPdf(true);
+        try {
+            const cover = story.pages?.find((p) => p.isCover);
+            const storyPages = (story.pages || []).filter((p) => !p.isCover);
+            const book = {
+                title: story.title,
+                childName: story.childName,
+                coverImage: await toJpegDataUrl(cover?.image),
+                pages: []
+            };
+            for (const p of storyPages) {
+                book.pages.push({ image: await toJpegDataUrl(p.image), text: p.text });
+            }
+            const bytes = buildPrintPdf(book, 24);
+            saveAs(
+                new Blob([bytes], { type: 'application/pdf' }),
+                `${(story.title || 'storybook').replace(/[^\w-]+/g, '-').toLowerCase()}.pdf`
+            );
+        } catch (error) {
+            console.error('Failed to build PDF:', error);
+            alert('Failed to create the PDF. Please try again.');
+        } finally {
+            setIsBuildingPdf(false);
         }
     };
 
@@ -126,7 +206,20 @@ export default function StoryViewer({ story, onClose, onStorySaved, isGenerating
                                     <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
                                     <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
                                 </svg>
-                                {isGeneratingEbook ? 'Generating...' : 'Download eBook'}
+                                {isGeneratingEbook ? 'Generating...' : digitalPaid ? 'Download eBook' : `Download eBook — ${pricing.symbol}${pricing.prices.digital} ${pricing.label}`}
+                            </button>
+                            <button
+                                className="action-btn ebook-btn"
+                                onClick={handleDownloadPdf}
+                                disabled={isBuildingPdf || isGenerating}
+                                title="High-resolution PDF of the full book"
+                            >
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="7 10 12 15 17 10"></polyline>
+                                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                                </svg>
+                                {isBuildingPdf ? 'Building...' : digitalPaid ? 'Download PDF' : `Download PDF — ${pricing.symbol}${pricing.prices.digital} ${pricing.label}`}
                             </button>
                             <button
                                 className="action-btn order-print-btn"

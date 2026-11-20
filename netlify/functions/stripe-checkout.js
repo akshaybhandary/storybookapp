@@ -83,9 +83,9 @@ exports.handler = async (event) => {
         };
     }
 
-    let tier, region;
+    let tier, region, bookRef;
     try {
-        ({ tier, region } = JSON.parse(event.body));
+        ({ tier, region, bookRef } = JSON.parse(event.body));
     } catch (e) {
         return {
             statusCode: 400,
@@ -125,6 +125,10 @@ exports.handler = async (event) => {
         'metadata[region]': region,
         'payment_intent_data[metadata][tier]': tier,
         'payment_intent_data[metadata][region]': region,
+        ...(bookRef ? {
+            'metadata[book_ref]': String(bookRef).slice(0, 64),
+            'payment_intent_data[metadata][book_ref]': String(bookRef).slice(0, 64)
+        } : {}),
         success_url: `${origin}/?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${origin}/?checkout=cancelled`
     });
@@ -136,6 +140,8 @@ exports.handler = async (event) => {
         params.set('shipping_address_collection[allowed_countries][1]', 'CA');
         params.set('shipping_address_collection[allowed_countries][2]', 'GB');
         params.set('shipping_options[0][shipping_rate_data][type]', 'fixed_amount');
+        // Required when automatic_tax is on, or session creation fails.
+        params.set('shipping_options[0][shipping_rate_data][tax_behavior]', 'exclusive');
         params.set('shipping_options[0][shipping_rate_data][fixed_amount][amount]', String(SHIPPING_FLAT_CENTS));
         params.set('shipping_options[0][shipping_rate_data][fixed_amount][currency]', region === 'CA' ? 'cad' : region === 'GB' ? 'gbp' : 'usd');
         params.set('shipping_options[0][shipping_rate_data][display_name]', 'Standard shipping');

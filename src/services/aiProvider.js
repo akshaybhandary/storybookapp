@@ -1,6 +1,7 @@
-// Unified AI Provider Service - Switch between Google AI and OpenRouter
+// Unified AI Provider Service - Switch between NanoGPT, Google AI and OpenRouter
 import * as googleAPI from './googleAPI';
 import * as openRouterAPI from './openRouterAPI';
+import * as nanoGptAPI from './nanoGptAPI';
 import { getApiKey, getOpenRouterKey, getAIProvider, setAIProvider } from './storageService';
 import logger from '../utils/logger';
 
@@ -9,14 +10,19 @@ import logger from '../utils/logger';
  */
 export const AI_PROVIDERS = {
     GOOGLE: 'google',
-    OPENROUTER: 'openrouter'
+    OPENROUTER: 'openrouter',
+    NANOGPT: 'nanogpt'
 };
 
 /**
- * Get the current active provider
+ * Get the current active provider.
+ * Default is NanoGPT (Seedream images — the model that passed the likeness
+ * test). Until NANOGPT_API_KEY is configured server-side, every NanoGPT call
+ * throws `notConfigured` and the wrappers below fall back to OpenRouter
+ * automatically, so the site keeps working during the switch-over.
  */
 export function getCurrentProvider() {
-    return getAIProvider() || AI_PROVIDERS.OPENROUTER; // Default to OpenRouter
+    return getAIProvider() || AI_PROVIDERS.NANOGPT;
 }
 
 /**
@@ -46,6 +52,12 @@ function getProviderApiKey() {
 
     if (provider === AI_PROVIDERS.GOOGLE) {
         return getApiKey(); // Google AI Studio key
+    } else if (provider === AI_PROVIDERS.NANOGPT) {
+        try {
+            return localStorage.getItem('nanogpt_api_key');
+        } catch {
+            return null;
+        }
     } else {
         return getOpenRouterKey(); // OpenRouter key
     }
@@ -66,8 +78,27 @@ function getProviderAPI() {
 
     if (provider === AI_PROVIDERS.GOOGLE) {
         return googleAPI;
+    } else if (provider === AI_PROVIDERS.NANOGPT) {
+        return nanoGptAPI;
     } else {
         return openRouterAPI;
+    }
+}
+
+/**
+ * Run a provider call; when the active provider is NanoGPT but it isn't
+ * configured server-side yet (error.notConfigured), retry once on OpenRouter
+ * so generation never hard-fails during the switch-over.
+ */
+async function withFallback(provider, run, openRouterRun) {
+    try {
+        return await run();
+    } catch (error) {
+        if (provider === AI_PROVIDERS.NANOGPT && error && error.notConfigured) {
+            logger.warn('PROVIDER', 'NanoGPT not configured — falling back to OpenRouter');
+            return await openRouterRun();
+        }
+        throw error;
     }
 }
 
@@ -88,7 +119,9 @@ export async function generateStoryContent(childName, storyPrompt, pageCount, ch
             throw new Error(`Please set your ${provider === AI_PROVIDERS.GOOGLE ? 'Google AI Studio' : 'OpenRouter'} API key in settings`);
         }
 
-        return await api.generateStoryContent(childName, storyPrompt, pageCount, apiKey, childAge, onProgress);
+        return await withFallback(provider,
+            () => api.generateStoryContent(childName, storyPrompt, pageCount, apiKey, childAge, onProgress),
+            () => openRouterAPI.generateStoryContent(childName, storyPrompt, pageCount, getOpenRouterKey(), childAge, onProgress));
     } catch (error) {
         logger.error('PROVIDER', `Story generation failed with ${provider}`, error);
         throw error;
@@ -110,7 +143,9 @@ export async function analyzePersonPhoto(photoBase64, personName, childAge) {
             throw new Error(`Please set your ${provider === AI_PROVIDERS.GOOGLE ? 'Google AI Studio' : 'OpenRouter'} API key in settings`);
         }
 
-        return await api.analyzePersonPhoto(photoBase64, personName, apiKey, childAge);
+        return await withFallback(provider,
+            () => api.analyzePersonPhoto(photoBase64, personName, apiKey, childAge),
+            () => openRouterAPI.analyzePersonPhoto(photoBase64, personName, getOpenRouterKey(), childAge));
     } catch (error) {
         logger.error('PROVIDER', `Photo analysis failed with ${provider}`, error);
         throw error;
@@ -138,16 +173,27 @@ export async function generatePageImage(
             throw new Error(`Please set your ${provider === AI_PROVIDERS.GOOGLE ? 'Google AI Studio' : 'OpenRouter'} API key in settings`);
         }
 
-        return await api.generatePageImage(
-            imagePrompt,
-            apiKey,
-            pageNumber,
-            childPhoto,
-            childName,
-            characterDescription,
-            storyContext,
-            childAge
-        );
+        return await withFallback(provider,
+            () => api.generatePageImage(
+                imagePrompt,
+                apiKey,
+                pageNumber,
+                childPhoto,
+                childName,
+                characterDescription,
+                storyContext,
+                childAge
+            ),
+            () => openRouterAPI.generatePageImage(
+                imagePrompt,
+                getOpenRouterKey(),
+                pageNumber,
+                childPhoto,
+                childName,
+                characterDescription,
+                storyContext,
+                childAge
+            ));
     } catch (error) {
         logger.error('PROVIDER', `Image generation failed with ${provider} on page ${pageNumber}`, error);
         throw error;
@@ -162,6 +208,15 @@ export function getProviderInfo() {
     const hasKey = !!getProviderApiKey();
 
     const info = {
+        [AI_PROVIDERS.NANOGPT]: {
+            name: 'NanoGPT',
+            model: 'GPT-4o mini (text + vision)',
+            imageModel: 'Seedream 5.5',
+            timeout: 'Server-side proxy',
+            pros: ['Best likeness from the photo', 'Cheap per book', 'Switchable models'],
+            cons: ['Needs NANOGPT_API_KEY configured'],
+            keyUrl: 'https://nano-gpt.com'
+        },
         [AI_PROVIDERS.GOOGLE]: {
             name: 'Google AI Studio',
             model: 'Gemini 2.5 Flash',

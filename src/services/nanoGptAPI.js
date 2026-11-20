@@ -1,0 +1,353 @@
+// NanoGPT API Service — story text, photo analysis, and Seedream images.
+//
+// Mirrors the openRouterAPI interface so aiProvider can route between them:
+//   generateStoryContent(childName, theme, pageCount, apiKey, childAge)
+//   analyzePersonPhoto(photoBase64, personName, apiKey, childAge)
+//   generatePageImage(imagePrompt, apiKey, pageNumber, childPhoto, childName,
+//                     characterDescription, storyContext, childAge)
+//
+// Production calls go through /.netlify/functions/nanogpt (the key stays
+// server-side). Until NANOGPT_API_KEY is set there, the function returns 501
+// and this module throws an error with `notConfigured = true`, which
+// aiProvider uses to fall back to the OpenRouter path automatically.
+//
+// Models (overridable server-side via NANOGPT_TEXT_MODEL / NANOGPT_IMAGE_MODEL):
+//   text + vision: openai/gpt-4o-mini (cheap, strong JSON, sees photos)
+//   images:        bytedance/seedream-v5.5 (image-to-image from the child's
+//                  photo — the model that passed the likeness test)
+import logger from '../utils/logger';
+
+const TEXT_MODEL = 'openai/gpt-4o-mini';
+const IMAGE_MODEL = 'bytedance/seedream-v5.5';
+const IMAGE_SIZE = '2k'; // Seedream takes a resolution token: '1k' | '1.5k' | '2k'
+
+const isProduction = import.meta.env.PROD;
+const FUNCTION_URL = '/.netlify/functions/nanogpt';
+const DIRECT_BASE = 'https://api.nano-gpt.com/api/v1';
+
+function devKey() {
+    try {
+        return localStorage.getItem('nanogpt_api_key');
+    } catch {
+        return null;
+    }
+}
+
+async function callChat(body, apiKey) {
+    if (isProduction) {
+        const res = await fetch(FUNCTION_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ kind: 'chat', body })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.status === 501) {
+            const err = new Error(data.message || 'NanoGPT is not configured yet.');
+            err.notConfigured = true;
+            throw err;
+        }
+        if (!res.ok) throw new Error(`NanoGPT chat failed (${res.status}): ${data.error || res.statusText}`);
+        return data;
+    }
+    const key = apiKey || devKey();
+    const res = await fetch(`${DIRECT_BASE}/chat/completions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+        body: JSON.stringify(body)
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(`NanoGPT chat failed (${res.status}): ${data.error?.message || res.statusText}`);
+    return data;
+}
+
+async function callImage(body) {
+    if (isProduction) {
+        const res = await fetch(FUNCTION_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ kind: 'image', body })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.status === 501) {
+            const err = new Error(data.message || 'NanoGPT is not configured yet.');
+            err.notConfigured = true;
+            throw err;
+        }
+        if (!res.ok) throw new Error(`NanoGPT image failed (${res.status}): ${data.error || res.statusText}`);
+        if (!data.dataUrl) throw new Error('NanoGPT image response had no dataUrl');
+        return data.dataUrl;
+    }
+    const key = devKey();
+    // Image generation lives under /v1, not /api/v1 (verified against the API)
+    const res = await fetch('https://api.nano-gpt.com/v1/images/generations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+        body: JSON.stringify(body)
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(`NanoGPT image failed (${res.status}): ${data.error?.message || res.statusText}`);
+    const first = data.data?.[0];
+    if (first?.b64_json) return `data:image/png;base64,${first.b64_json}`;
+    if (first?.url) return first.url;
+    throw new Error('NanoGPT image response had no image');
+}
+
+function parseStoryJson(content) {
+    try {
+        return JSON.parse(content);
+    } catch (e) {
+        const match = content.match(/\{[\s\S]*\}/);
+        if (match) return JSON.parse(match[0]);
+        throw new Error('Failed to parse story content');
+    }
+}
+
+/**
+ * Generate story content (same prompt + output shape as the OpenRouter path)
+ */
+export async function generateStoryContent(childName, theme, pageCount, apiKey, childAge = '4-8') {
+    logger.storyGenerationStart(childName, theme, pageCount);
+
+    const prompt = `You are an award-winning children's book author creating a premium storybook for a child named ${childName} who is ${childAge} years old.
+
+STORY DETAILS:
+- Theme: ${theme}
+- Pages: Exactly ${pageCount} pages
+- Target age: ${childAge} years old
+
+STORYTELLING EXCELLENCE REQUIREMENTS:
+
+1. NARRATIVE QUALITY:
+   - Use rich, descriptive language appropriate for children
+   - Include sensory details (sights, sounds, feelings)
+   - Create a clear story arc: Beginning (introduce character & problem), Middle (adventure/challenge), End (resolution & growth)
+   - Each page should end with a hook that makes readers want to turn the page
+   - Use varied sentence structures - mix short, punchy sentences with longer, flowing ones
+   - Include dialogue to bring characters to life
+   - Show emotions through actions and expressions, not just telling
+
+2. CHARACTER DEVELOPMENT:
+   - ${childName} should be brave, curious, kind, and relatable
+   - Give ${childName} a clear personality trait or strength
+   - Show ${childName} learning or growing through the adventure
+   - Include one supporting character who helps or challenges ${childName}
+
+3. LITERARY DEVICES:
+   - Use alliteration and rhyme occasionally for memorability
+   - Include onomatopoeia for sound effects (whoosh, splash, rustle)
+   - Create vivid imagery with metaphors children understand
+   - Add emotional depth - moments of wonder, excitement, warmth
+
+4. PACING & STRUCTURE:
+   - Pages 1-2: Set the scene, introduce ${childName} and their world
+   - Pages 3-${Math.floor(pageCount * 0.7)}: The adventure unfolds, challenges arise
+   - Final pages: Climax, resolution, heartwarming ending with a gentle lesson
+
+5. VISUAL CONSISTENCY (CRITICAL):
+   - OUTFIT: ${childName} wears ONE specific outfit throughout. Define it clearly.
+   - LOCATIONS: Each location has consistent colors, furniture, and style whenever it appears
+   - **CHARACTERS**: Define ALL characters (friends, animals, adults) with specific appearance details. They MUST look exactly the same on every page!
+   - Example outfit: "a cozy blue hoodie with a friendly dinosaur, green cargo pants, red sneakers"
+   - Example location: "A sunlit bedroom with yellow walls, a wooden bed with star-patterned sheets, a round window with curtains"
+   - Example character: "Luna the cat: small fluffy white cat with bright green eyes, pink collar with bell, always playful"
+
+6. THEMES TO WEAVE IN:
+   - Friendship, courage, kindness, or curiosity (subtle, not preachy)
+   - Wonder and imagination
+   - Problem-solving and resilience
+   - Celebration of uniqueness
+
+OUTPUT FORMAT (JSON):
+{
+    "title": "An evocative, memorable title (2-4 words, no character name)",
+    "characterOutfit": "Precise description of ${childName}'s outfit worn throughout",
+    "characters": {
+        "${childName}": "The main character (will be described separately from uploaded photo)",
+        "characterName2": "DETAILED appearance: species/type, size, colors, distinctive features, clothing if any. Be VERY specific!",
+        "characterName3": "DETAILED appearance: species/type, size, colors, distinctive features, clothing if any"
+    },
+    "locations": {
+        "locationName1": "Vivid description: colors, key features, atmosphere",
+        "locationName2": "Vivid description: colors, key features, atmosphere"
+    },
+    "pages": [
+        {
+            "pageNumber": 1,
+            "text": "Engaging text (2-4 sentences max). Use vivid verbs. Include sensory details.",
+            "location": "locationName1",
+            "charactersPresent": ["${childName}", "characterName2"],
+            "imagePrompt": "Detailed scene: ${childName} in [exact outfit], [other characters with exact appearance], at [location with specific details], doing [specific action with emotion]"
+        }
+        ... (${pageCount} pages)
+    ]
+}
+
+IMPORTANT: If you introduce ANY character besides ${childName} (friends, animals, adults, magical creatures), you MUST define their appearance in the "characters" object with EXTREME detail so they look identical on every page!
+
+QUALITY STANDARD: Write as if this will be professionally published. Every sentence should delight and engage. Make parents want to read this aloud, and make children ask for it again and again.`;
+
+    const data = await callChat({
+        model: TEXT_MODEL,
+        messages: [{ role: 'user', content: prompt }],
+        response_format: { type: 'json_object' }
+    }, apiKey);
+
+    const content = data.choices?.[0]?.message?.content;
+    if (!content) throw new Error('NanoGPT returned no story content');
+    const storyData = parseStoryJson(content);
+    logger.info('STORY-GEN', 'NanoGPT story parsed', { title: storyData.title, pageCount: storyData.pages?.length });
+    return storyData;
+}
+
+/**
+ * Analyze child's photo into a character description (vision chat call).
+ * Fallbacks use personName — the OpenRouter version's fallback referenced an
+ * undefined variable; this one doesn't.
+ */
+export async function analyzePersonPhoto(photoBase64, personName, apiKey, childAge = null) {
+    logger.info('CHARACTER', 'Analyzing person photo via NanoGPT', { childAge });
+
+    const fallback = {
+        characterDescription: `A child named ${personName}`,
+        shortDescription: personName
+    };
+
+    const analysisPrompt = `Analyze this photo of a person named ${personName} ${childAge ? `(age: ${childAge})` : ''} and provide a VERY detailed character description that can be used consistently across multiple illustrations.
+
+CRITICAL: Pay special attention to hair - it MUST remain exactly the same in all illustrations!
+
+Please describe in EXTREME detail:
+1. Skin tone (be specific: light, medium, olive, tan, brown, dark brown, etc.)
+2. **HAIR COLOR** (exact shade - be very specific: jet black, dark brown, light brown, blonde, strawberry blonde, auburn, etc.)
+3. **HAIR STYLE** (CRITICAL - describe in detail):
+   - Exact length (shoulder-length, chin-length, very short, long past shoulders, etc.)
+   - Texture (straight, wavy, curly, type 3a curls, type 4c coils, etc.)
+   - Part location (center part, side part, no part)
+   - Any styling (ponytail, braids, buns, loose, etc.)
+   - Bangs or no bangs
+   - Volume (thick, fine, voluminous)
+4. Eye color (exact shade)
+5. Approximate age
+6. Any distinctive features (glasses, dimples, freckles, etc.)
+7. Face shape
+
+Respond with a JSON object:
+{
+    "characterDescription": "A detailed paragraph describing the child's appearance that can be used as a character reference for illustrations. EMPHASIZE HAIR DETAILS.",
+    "skinTone": "specific skin tone",
+    "hairColor": "EXACT specific hair color shade",
+    "hairStyle": "VERY DETAILED description of hair - length, texture, style, part, everything",
+    "hairLength": "specific length description",
+    "hairTexture": "specific texture (straight/wavy/curly/etc)",
+    "eyeColor": "eye color",
+    "approximateAge": "age range like 4-6 years",
+    "distinctiveFeatures": "any notable features or 'none'",
+    "shortDescription": "Brief 1-sentence description for quick reference"
+}`;
+
+    try {
+        const data = await callChat({
+            model: TEXT_MODEL,
+            messages: [
+                {
+                    role: 'user',
+                    content: [
+                        { type: 'image_url', image_url: { url: photoBase64 } },
+                        { type: 'text', text: analysisPrompt }
+                    ]
+                }
+            ],
+            response_format: { type: 'json_object' }
+        }, apiKey);
+
+        const content = data.choices?.[0]?.message?.content;
+        if (!content) return fallback;
+        try {
+            return JSON.parse(content);
+        } catch (e) {
+            logger.warn('CHARACTER', 'Failed to parse NanoGPT character analysis', { error: e.message });
+            return fallback;
+        }
+    } catch (error) {
+        if (error.notConfigured) throw error; // let aiProvider fall back
+        logger.error('CHARACTER', 'NanoGPT character analysis error', error);
+        return fallback;
+    }
+}
+
+/**
+ * Generate one page image with Seedream, using the child's photo as the
+ * reference image so the character carries across pages.
+ */
+export async function generatePageImage(imagePrompt, apiKey, pageNumber = 0, childPhoto = null, childName = '', characterDescription = null, storyContext = null, childAge = null) {
+    logger.imageGenerationStart(pageNumber, imagePrompt);
+
+    let characterRef = '';
+    if (characterDescription && characterDescription.characterDescription) {
+        characterRef = `
+CHARACTER APPEARANCE (MAINTAIN EXACT CONSISTENCY IN EVERY IMAGE):
+${characterDescription.characterDescription}
+
+CRITICAL - DO NOT CHANGE THESE:
+- Skin tone: ${characterDescription.skinTone || 'match the reference photo'}
+- **HAIR COLOR (NEVER CHANGE)**: ${characterDescription.hairColor || 'match reference photo exactly'}
+- **HAIR STYLE (NEVER CHANGE)**: ${characterDescription.hairStyle || 'match reference photo exactly'}
+  ${characterDescription.hairLength ? `  * Length: ${characterDescription.hairLength}` : ''}
+  ${characterDescription.hairTexture ? `  * Texture: ${characterDescription.hairTexture}` : ''}
+- Eyes: ${characterDescription.eyeColor || 'match the reference photo'}
+- Age appearance: ${childAge ? `${childAge} years old` : (characterDescription.approximateAge || 'young child')}
+${characterDescription.distinctiveFeatures && characterDescription.distinctiveFeatures !== 'none' ? `- Distinctive features: ${characterDescription.distinctiveFeatures}` : ''}
+
+IMPORTANT: The hair MUST look exactly the same as in the reference photo and all other illustrations. Same color, same style, same length every single time!`;
+    }
+
+    let storyConsistency = '';
+    if (storyContext) {
+        storyConsistency = `
+OUTFIT (MUST BE EXACTLY THE SAME IN ALL ILLUSTRATIONS):
+${storyContext.characterOutfit || 'match the reference photo clothing'}
+
+${storyContext.currentLocation && storyContext.locations && storyContext.locations[storyContext.currentLocation] ? `
+CURRENT LOCATION - ${storyContext.currentLocation.toUpperCase()}:
+${storyContext.locations[storyContext.currentLocation]}
+If this location appeared before, it MUST look identical.
+` : ''}
+
+${storyContext.characters && Object.keys(storyContext.characters).length > 0 ? `
+OTHER CHARACTERS IN THIS STORY (MUST LOOK IDENTICAL ON EVERY PAGE):
+${Object.entries(storyContext.characters)
+                    .filter(([name]) => name !== childName)
+                    .map(([name, description]) => `- ${name}: ${description}`)
+                    .join('\n')}
+
+IMPORTANT: If any of these characters appear in this illustration, they MUST match these exact descriptions!
+` : ''}`;
+    }
+
+    const enhancedPrompt = `Create a children's book illustration: ${imagePrompt}
+${characterRef}
+${storyConsistency}
+
+CRITICAL CONSISTENCY REQUIREMENTS:
+1. The main character ${childName} MUST look like the reference photo (same face, skin tone, hair)
+2. The character MUST wear the EXACT same outfit described above
+3. The location/background MUST match the description exactly
+4. This is page ${pageNumber} of a storybook - everything must be consistent with other pages
+
+Style: Vibrant, colorful, whimsical, friendly children's book illustration.
+Art style: Modern digital illustration suitable for ages 4-8.
+Quality: High quality, detailed, professional.
+No text, words, letters, or watermarks anywhere in the image.`;
+
+    const body = {
+        model: IMAGE_MODEL,
+        prompt: enhancedPrompt,
+        size: IMAGE_SIZE,
+        n: 1
+    };
+    if (childPhoto) body.imageDataUrls = [childPhoto];
+
+    const dataUrl = await callImage(body);
+    logger.imageGenerationSuccess(pageNumber, 0, true);
+    return dataUrl;
+}
