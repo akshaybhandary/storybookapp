@@ -54,6 +54,12 @@ exports.handler = async (event) => {
         return json(200, { status: 'pending' });
     } catch (error) {
         console.error('nanogpt status error:', error);
-        return json(500, { status: 'error', error: 'Status check failed' });
+        // Surface the error name/message: Blobs configuration problems are
+        // otherwise invisible from outside. No secrets are involved here.
+        return json(500, {
+            status: 'error',
+            error: 'Status check failed',
+            detail: `${error.name}: ${String(error.message).slice(0, 200)}`
+        });
     }
 };
