@@ -13,7 +13,8 @@
 //       hours after the order, during normalization).
 //
 // Uploads are capped by the platform request limit (~6 MB), so the client
-// builds print PDFs with compressed images (a 24-page book lands ~2.5 MB).
+// builds print PDFs with compressed images (a full 24-page-story book
+// lands ~3.7 MB at 1120px/q0.76 — see toPrintJpeg in StoryViewer).
 
 const crypto = require('crypto');
 const { getStore, connectLambda } = require('@netlify/blobs');

@@ -33,12 +33,16 @@ async function toPrintJpeg(src) {
         img.onerror = reject;
         img.src = src;
     });
-    const scale = Math.min(1, 1180 / Math.max(img.naturalWidth, img.naturalHeight));
+    // Print uploads go through a Netlify Function (~6 MB request cap,
+    // base64-inflated). A full 24-page book at 1180px/q0.82 lands ~4.9 MB
+    // of PDF — too big once encoded. 1120px/q0.76 keeps the interior
+    // near ~3.7 MB with no visible print difference (132 vs 139 dpi).
+    const scale = Math.min(1, 1120 / Math.max(img.naturalWidth, img.naturalHeight));
     const canvas = document.createElement('canvas');
     canvas.width = Math.round(img.naturalWidth * scale);
     canvas.height = Math.round(img.naturalHeight * scale);
     canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-    return canvas.toDataURL('image/jpeg', 0.82);
+    return canvas.toDataURL('image/jpeg', 0.76);
 }
 
 function bytesToBase64(bytes) {
