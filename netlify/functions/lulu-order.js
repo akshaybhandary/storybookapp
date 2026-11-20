@@ -150,10 +150,10 @@ exports.handler = async (event) => {
             });
             const token = (await tokenRes.json().catch(() => ({})))?.access_token;
             if (!token) return json(502, { error: 'lulu_auth_failed' });
-            const patchRes = await fetch(`${lulu.base}/print-jobs/${encodeURIComponent(body.cancelJobId)}/`, {
-                method: 'PATCH',
+            const patchRes = await fetch(`${lulu.base}/print-jobs/${encodeURIComponent(body.cancelJobId)}/status/`, {
+                method: 'PUT',
                 headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status: 'CANCELED' }),
+                body: JSON.stringify({ name: 'CANCELED' }),
                 signal: AbortSignal.timeout(20000)
             });
             const patched = await patchRes.json().catch(() => ({}));
