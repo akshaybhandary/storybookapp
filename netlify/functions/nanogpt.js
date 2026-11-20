@@ -16,6 +16,16 @@
 
 const { getStore } = require('@netlify/blobs');
 
+// This site's functions runtime does not inject the Blobs context
+// automatically (MissingBlobsEnvironmentError), so when NETLIFY_BLOBS_TOKEN
+// is set (a site-scoped Netlify access token), configure the store manually.
+const SITE_ID = '1a7d41f4-b6cc-4788-bd12-dfed5930b521';
+function jobsStore() {
+    const token = process.env.NETLIFY_BLOBS_TOKEN;
+    if (token) return getStore({ name: 'nanogpt-jobs', siteID: SITE_ID, token });
+    return getStore('nanogpt-jobs');
+}
+
 const CORS_HEADERS = {
     'Content-Type': 'application/json',
     'Access-Control-Allow-Origin': '*',
@@ -43,7 +53,7 @@ exports.handler = async (event) => {
     if (!jobId) return json(400, { error: 'Missing jobId' });
 
     try {
-        const store = getStore('nanogpt-jobs');
+        const store = jobsStore();
         const record = await store.get(jobId, { type: 'json' });
         if (!record) return json(200, { status: 'pending' });
         if (record.status === 'done' || record.status === 'error') {

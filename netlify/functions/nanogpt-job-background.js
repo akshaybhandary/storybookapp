@@ -15,6 +15,16 @@
 
 const { getStore } = require('@netlify/blobs');
 
+// This site's functions runtime does not inject the Blobs context
+// automatically, so when NETLIFY_BLOBS_TOKEN is set (a site-scoped Netlify
+// access token), configure the store manually.
+const SITE_ID = '1a7d41f4-b6cc-4788-bd12-dfed5930b521';
+function jobsStore() {
+    const token = process.env.NETLIFY_BLOBS_TOKEN;
+    if (token) return getStore({ name: 'nanogpt-jobs', siteID: SITE_ID, token });
+    return getStore('nanogpt-jobs');
+}
+
 const CHAT_URL = 'https://api.nano-gpt.com/api/v1/chat/completions';
 const IMAGE_URL = 'https://api.nano-gpt.com/v1/images/generations';
 
@@ -31,7 +41,7 @@ exports.handler = async (event) => {
         return { statusCode: 400 };
     }
 
-    const store = getStore('nanogpt-jobs');
+    const store = jobsStore();
     const apiKey = process.env.NANOGPT_API_KEY || process.env.nano_gpt_key;
 
     async function put(record) {
