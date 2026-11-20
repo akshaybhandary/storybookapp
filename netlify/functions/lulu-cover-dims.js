@@ -67,8 +67,9 @@ exports.handler = async (event) => {
             headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 pod_package_id: PACKAGES[tier],
-                interior_page_count: PAGE_COUNTS[tier],
-                unit: 'PT'
+                interior_page_count: PAGE_COUNTS[tier]
+                // No unit field: 'PT' is rejected as an invalid choice and
+                // the API default is points.
             }),
             signal: AbortSignal.timeout(20000)
         });
