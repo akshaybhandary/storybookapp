@@ -82,6 +82,9 @@ exports.handler = async (event) => {
         return json(200, { widthPt, heightPt, spinePt, source: 'lulu' });
     } catch (error) {
         console.error('cover-dims error:', error);
-        return json(200, { ...ESTIMATES[tier], source: 'estimate' });
+        // Surface the failure reason (no secrets involved) so a key/realm
+        // mismatch is diagnosable from outside; the estimates still let
+        // the client build a cover either way.
+        return json(200, { ...ESTIMATES[tier], source: 'estimate', detail: String(error.message || error).slice(0, 200) });
     }
 };
