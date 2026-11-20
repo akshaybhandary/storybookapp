@@ -13,11 +13,12 @@
 //   NANOGPT_TEXT_MODEL  optional override for the chat model
 //   NANOGPT_IMAGE_MODEL optional override for the image model
 
-const { getStore } = require('@netlify/blobs');
+const { getStore, connectLambda } = require('@netlify/blobs');
 
-// This site's functions runtime does not inject the Blobs context
-// automatically, so when NETLIFY_BLOBS_TOKEN is set (a site-scoped Netlify
-// access token), configure the store manually.
+// These handlers run in Lambda compatibility mode, where the Blobs context
+// is NOT injected automatically — connectLambda(event) wires it up from the
+// invocation event. If NETLIFY_BLOBS_TOKEN is set (a Netlify personal access
+// token), the store can also be configured manually as a fallback.
 const SITE_ID = '1a7d41f4-b6cc-4788-bd12-dfed5930b521';
 function jobsStore() {
     const token = process.env.NETLIFY_BLOBS_TOKEN;
@@ -29,6 +30,7 @@ const CHAT_URL = 'https://api.nano-gpt.com/api/v1/chat/completions';
 const IMAGE_URL = 'https://api.nano-gpt.com/v1/images/generations';
 
 exports.handler = async (event) => {
+    try { connectLambda(event); } catch { /* manual config may still apply */ }
     let jobId, kind, body;
     try {
         ({ jobId, kind, body } = JSON.parse(event.body || '{}'));

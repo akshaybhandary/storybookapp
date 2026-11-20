@@ -14,11 +14,12 @@
 //                                                  the client falls back to
 //                                                  the OpenRouter path
 
-const { getStore } = require('@netlify/blobs');
+const { getStore, connectLambda } = require('@netlify/blobs');
 
-// This site's functions runtime does not inject the Blobs context
-// automatically (MissingBlobsEnvironmentError), so when NETLIFY_BLOBS_TOKEN
-// is set (a site-scoped Netlify access token), configure the store manually.
+// These handlers run in Lambda compatibility mode, where the Blobs context
+// is NOT injected automatically — connectLambda(event) wires it up from the
+// invocation event. If NETLIFY_BLOBS_TOKEN is set (a Netlify personal access
+// token), the store can also be configured manually as a fallback.
 const SITE_ID = '1a7d41f4-b6cc-4788-bd12-dfed5930b521';
 function jobsStore() {
     const token = process.env.NETLIFY_BLOBS_TOKEN;
@@ -38,6 +39,7 @@ function json(statusCode, obj) {
 }
 
 exports.handler = async (event) => {
+    try { connectLambda(event); } catch { /* manual config may still apply */ }
     if (event.httpMethod === 'OPTIONS') {
         return { statusCode: 204, headers: CORS_HEADERS, body: '' };
     }
