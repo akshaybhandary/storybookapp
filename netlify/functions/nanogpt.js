@@ -63,7 +63,7 @@ exports.handler = async (event) => {
             await store.delete(jobId).catch(() => {});
             return json(200, record);
         }
-        return json(200, { status: 'pending' });
+        return json(200, { status: 'pending', stage: record.stage || null });
     } catch (error) {
         console.error('nanogpt status error:', error);
         // Surface the error name/message: Blobs configuration problems are
