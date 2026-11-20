@@ -71,6 +71,7 @@ export default function StoryViewer({ story, onClose, onStorySaved, isGenerating
     const [digitalPaid, setDigitalPaid] = useState(false);
     const [orderMessage, setOrderMessage] = useState(null);
     const [isPreparingPrint, setIsPreparingPrint] = useState(false);
+    const [reviewTier, setReviewTier] = useState(null);
     const pricing = usePricing();
 
     // Digital downloads (PDF + eBook) unlock per-book after the digital
@@ -120,6 +121,7 @@ export default function StoryViewer({ story, onClose, onStorySaved, isGenerating
     // attached — the webhook hands it to the print order after payment.
     const handleOrderPrint = async (tier) => {
         setOrderMessage(null);
+        setReviewTier(null);
         setIsPreparingPrint(true);
         try {
             setOrderMessage('Preparing your print files…');
@@ -230,6 +232,14 @@ export default function StoryViewer({ story, onClose, onStorySaved, isGenerating
 
     const themeIcons = ['🌟', '✨', '🎨', '🦄', '🌈', '🎭', '🎪', '🎡', '🎢', '🎠'];
 
+    // Printed-book page total, mirroring printPdf's assembly: 4 front
+    // pages (endpaper, title, copyright, dedication) + story pages +
+    // The End + up to 2 gallery pages + 3 closing pages (grown-ups note,
+    // activity, endpaper). Keep in sync with buildPrintPdfInner.
+    const storyPageCount = (story.pages || []).filter((p) => !p.isCover).length;
+    const artPageCount = (story.pages || []).filter((p) => !p.isCover && p.image).length;
+    const printPageTotal = 4 + storyPageCount + 1 + Math.min(2, Math.ceil(artPageCount / 4)) + 3;
+
     return (
         <div className="modal active">
             <div className="modal-backdrop" onClick={onClose}></div>
@@ -301,7 +311,7 @@ export default function StoryViewer({ story, onClose, onStorySaved, isGenerating
                             </button>
                             <button
                                 className="action-btn order-print-btn"
-                                onClick={() => handleOrderPrint('softcover')}
+                                onClick={() => setReviewTier('softcover')}
                                 disabled={isGenerating || isPreparingPrint}
                                 title="Quality 8.5&quot; x 8.5&quot; softcover, shipped to you"
                             >
@@ -309,7 +319,7 @@ export default function StoryViewer({ story, onClose, onStorySaved, isGenerating
                             </button>
                             <button
                                 className="action-btn order-print-btn"
-                                onClick={() => handleOrderPrint('hardcover')}
+                                onClick={() => setReviewTier('hardcover')}
                                 disabled={isGenerating || isPreparingPrint}
                                 title="Beautiful 8.5&quot; x 8.5&quot; hardcover, shipped to you"
                             >
@@ -317,6 +327,38 @@ export default function StoryViewer({ story, onClose, onStorySaved, isGenerating
                             </button>
                         </div>
                         {orderMessage && <div className="order-message">{orderMessage}</div>}
+                        {reviewTier && (
+                            <div className="print-review">
+                                <h3>Review your printed book</h3>
+                                <p className="print-review-meta">
+                                    {reviewTier === 'hardcover' ? 'Hardcover' : 'Softcover'} · 8.5&quot; × 8.5&quot; · {printPageTotal} pages — {storyPageCount} story pages, plus title, dedication, gallery and activity pages
+                                </p>
+                                <div className="print-review-thumbs">
+                                    {(story.pages || []).filter((p) => p.image).map((p, i) => (
+                                        <img key={i} src={p.image} alt={p.isCover ? 'Cover' : `Page ${p.pageNumber}`} loading="lazy" />
+                                    ))}
+                                </div>
+                                <p className="print-review-note">
+                                    This is the book that will be printed. Check the face and the name on the pages — personalized books are printed just for you and can&apos;t be returned.
+                                </p>
+                                <div className="print-review-actions">
+                                    <button
+                                        className="action-btn order-print-btn"
+                                        onClick={() => handleOrderPrint(reviewTier)}
+                                        disabled={isPreparingPrint}
+                                    >
+                                        {isPreparingPrint ? 'Preparing print files…' : '✓ Approve — order this book'}
+                                    </button>
+                                    <button
+                                        className="action-btn"
+                                        onClick={() => setReviewTier(null)}
+                                        disabled={isPreparingPrint}
+                                    >
+                                        Keep looking
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* Book-style spread layout */}

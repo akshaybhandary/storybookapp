@@ -2951,6 +2951,54 @@ body {
     color: var(--text-secondary, #ccc);
 }
 
+/* --- Pre-print review + approve step (StoryViewer) --- */
+.print-review {
+    margin-top: 1rem;
+    padding: 1rem;
+    border: 1px solid rgba(212, 175, 55, 0.45);
+    border-radius: 12px;
+    background: rgba(212, 175, 55, 0.07);
+    text-align: left;
+}
+
+.print-review h3 {
+    margin: 0 0 0.35rem;
+    font-size: 1.05rem;
+}
+
+.print-review-meta {
+    margin: 0 0 0.75rem;
+    font-size: 0.9rem;
+    color: var(--text-secondary, #ccc);
+}
+
+.print-review-thumbs {
+    display: flex;
+    gap: 0.4rem;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+}
+
+.print-review-thumbs img {
+    width: 64px;
+    height: 64px;
+    object-fit: cover;
+    border-radius: 6px;
+    flex: 0 0 auto;
+}
+
+.print-review-note {
+    margin: 0.5rem 0 0.75rem;
+    font-size: 0.88rem;
+    color: var(--text-secondary, #ccc);
+}
+
+.print-review-actions {
+    display: flex;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+}
+
 @media (max-width: 640px) {
     .promise-card {
         width: 100%;
