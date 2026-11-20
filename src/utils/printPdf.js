@@ -1,3 +1,5 @@
+import { PRINT_FONT_METRICS, getPrintFontBytes } from './printFonts.js';
+
 // Print-ready interior PDF builder for LumiFables books.
 //
 // Pure JavaScript, no dependencies. Builds an 8.5" x 8.5" (612 x 612 pt)
@@ -99,6 +101,62 @@ function wrapText(text, size, maxWidth) {
     return lines;
 }
 
+
+// Round to 3 decimals. Raw JS arithmetic prints values like
+// 65.34150000000011 (17 significant digits); strict print preflight
+// parsers (Lulu's normalizer) reject those as invalid content-stream
+// parameters, so every number written into a content stream is rounded.
+const fmt = (x) => {
+    const v = Math.round(Number(x) * 1000) / 1000;
+    return Object.is(v, -0) ? '0' : String(v);
+};
+
+// Round long decimal tokens in a content stream (outside literal
+// strings) to 3 decimal places — see fmt above.
+function sanitizeContent(content) {
+    let out = '';
+    let i = 0;
+    let depth = 0;
+    while (i < content.length) {
+        const ch = content[i];
+        if (depth > 0) {
+            out += ch;
+            if (ch === '\\') { out += content[i + 1] || ''; i += 2; continue; }
+            if (ch === '(') depth++;
+            else if (ch === ')') depth--;
+            i++;
+            continue;
+        }
+        if (ch === '(') { depth = 1; out += ch; i++; continue; }
+        const m = /^-?\d+\.\d{4,}/.exec(content.slice(i, i + 24));
+        if (m) { out += fmt(parseFloat(m[0])); i += m[0].length; continue; }
+        out += ch;
+        i++;
+    }
+    return out;
+}
+
+
+// Font objects for a document. When the Liberation Sans binaries have
+// been loaded (the print flow), embed them: Lulu's cover preflight
+// rejects unembedded base-14 font references. Without loaded bytes,
+// fall back to base-14 references (fine for on-screen PDFs).
+function addFontObjects(addObject) {
+    const bytes = getPrintFontBytes();
+    if (!bytes) {
+        return {
+            f1: addObject('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>'),
+            f2: addObject('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>')
+        };
+    }
+    const mk = (data, m) => {
+        const fileNum = addObject({ streamHeader: `<< /Length ${data.length} /Length1 ${data.length} >>`, stream: data });
+        const descNum = addObject(`<< /Type /FontDescriptor /FontName /${m.name} /Flags 32 /FontBBox [${m.bbox.join(' ')}] /ItalicAngle 0 /Ascent ${m.ascent} /Descent ${m.descent} /CapHeight ${m.capHeight} /StemV ${m.stemV} /FontFile2 ${fileNum} 0 R >>`);
+        return addObject(`<< /Type /Font /Subtype /TrueType /BaseFont /${m.name} /FirstChar 32 /LastChar 126 /Widths [${m.widths.join(' ')}] /Encoding /WinAnsiEncoding /FontDescriptor ${descNum} 0 R >>`);
+    };
+    return { f1: mk(bytes.regular, PRINT_FONT_METRICS.regular), f2: mk(bytes.bold, PRINT_FONT_METRICS.bold) };
+}
+
 // ---------- page content builders ----------
 // Each builder returns a PDF content-stream string. `img` maps a page-local
 // image key to its XObject name (e.g. /Im3).
@@ -125,7 +183,7 @@ function coverPage(book, imgName) {
     }
     const sub = `Starring ${book.childName || 'Your Child'}`;
     const sw = textWidth(sub, 20);
-    s += `/F1 20 Tf 1 0 0 1 ${(PAGE - sw) / 2} ${y - 6} Tm (${escapeText(sub)}) Tj ET`;
+    s += `/F1 20 Tf 1 0 0 1 ${(PAGE - sw) / 2} ${y - 6} Tm (${escapeText(sub)}) Tj ET `;
     return s;
 }
 
@@ -159,7 +217,7 @@ function centeredText(lines, { size = 16, font = 'F1', y, leading, color = '0.2 
         s += `1 0 0 1 ${(PAGE - w) / 2} ${cy} Tm (${escapeText(line)}) Tj `;
         cy -= leading || size * 1.35;
     }
-    return s + 'ET';
+    return s + 'ET ';
 }
 
 function endpaperPage(book, front) {
@@ -219,7 +277,7 @@ function storyPage(page, pageNumber, dims) {
         s += `1 0 0 1 ${(PAGE - w) / 2} ${y} Tm (${escapeText(line)}) Tj `;
         y -= 23;
     }
-    s += 'ET';
+    s += 'ET ';
     const num = String(pageNumber);
     const nw = textWidth(num, 10);
     s += `BT /F1 10 Tf 0.55 0.5 0.6 rg 1 0 0 1 ${(PAGE - nw) / 2} 22 Tm (${num}) Tj ET`;
@@ -268,7 +326,7 @@ function grownUpsPage() {
             y -= 14;
         } else {
             const w = textWidth(line, 13.5);
-            s += `BT /F1 13.5 Tf 0.25 0.2 0.35 rg 1 0 0 1 ${(PAGE - w) / 2} ${y} Tm (${escapeText(line)}) Tj ET`;
+            s += `BT /F1 13.5 Tf 0.25 0.2 0.35 rg 1 0 0 1 ${(PAGE - w) / 2} ${y} Tm (${escapeText(line)}) Tj ET `;
             y -= 21;
         }
     });
@@ -387,8 +445,7 @@ function buildPrintPdfInner(book, targetPages = 24, options = {}) {
         return objects.length; // 1-based object number
     }
 
-    const fontReg = addObject('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>');
-    const fontBold = addObject('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>');
+    const { f1: fontReg, f2: fontBold } = addFontObjects(addObject);
 
     const imageObjNums = new Map();
     for (const img of images) {
@@ -404,8 +461,9 @@ function buildPrintPdfInner(book, targetPages = 24, options = {}) {
     for (const build of assembled) {
         // Builders concatenate text blocks; guarantee operator separation
         // (an "ET" immediately followed by "BT" is invalid for strict parsers).
-        const content = build().replace(/ETBT/g, 'ET BT');
-        const contentNum = addObject({ streamHeader: `<< /Length ${content.length} >>`, stream: new TextEncoder().encode(content) });
+        const content = sanitizeContent(build());
+        const contentBytes = new TextEncoder().encode(content);
+        const contentNum = addObject({ streamHeader: `<< /Length ${contentBytes.length} >>`, stream: contentBytes });
         const pageNum = addObject(`<< /Type /Page /Parent PAGES_REF /MediaBox [0 0 ${PAGE} ${PAGE}] /Resources ${resources} /Contents ${contentNum} 0 R >>`);
         pageObjNums.push(pageNum);
     }
@@ -544,8 +602,7 @@ export function buildCoverPdf(book, dims) {
     // ---- serialize a one-page PDF (same writer pattern as buildPrintPdf) ----
     const objects = [];
     function addObject(body) { objects.push(body); return objects.length; }
-    const fontReg = addObject('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>');
-    const fontBold = addObject('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>');
+    const { f1: fontReg, f2: fontBold } = addFontObjects(addObject);
     const imageObjNums = new Map();
     for (const img of images) {
         const header = `<< /Type /XObject /Subtype /Image /Width ${img.width} /Height ${img.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${img.bytes.length} >>`;
@@ -553,8 +610,9 @@ export function buildCoverPdf(book, dims) {
     }
     const xobjectDict = images.map((img) => `/${img.name} ${imageObjNums.get(img.name)} 0 R`).join(' ');
     const resources = `<< /Font << /F1 ${fontReg} 0 R /F2 ${fontBold} 0 R >> /XObject << ${xobjectDict} >> >>`;
-    const content = s.replace(/ETBT/g, 'ET BT');
-    const contentNum = addObject({ streamHeader: `<< /Length ${content.length} >>`, stream: new TextEncoder().encode(content) });
+    const content = sanitizeContent(s);
+    const contentBytes = new TextEncoder().encode(content);
+    const contentNum = addObject({ streamHeader: `<< /Length ${contentBytes.length} >>`, stream: contentBytes });
     const pageNum = addObject(`<< /Type /Page /Parent PAGES_REF /MediaBox [0 0 ${W} ${H}] /Resources ${resources} /Contents ${contentNum} 0 R >>`);
     const pagesNum = addObject(`<< /Type /Pages /Kids [${pageNum} 0 R] /Count 1 >>`);
     const catalogNum = addObject(`<< /Type /Catalog /Pages ${pagesNum} 0 R >>`);

@@ -3,6 +3,7 @@ import { saveAs } from 'file-saver';
 import { saveStory, isStorySaved } from '../services/storageService';
 import { generateEPUB } from '../utils/epubGenerator';
 import { buildPrintPdf, buildPrintPdfWithCount, buildCoverPdf } from '../utils/printPdf';
+import { loadPrintFontBytes } from '../utils/printFonts';
 import { startCheckout } from '../services/checkoutService';
 import { usePricing } from '../utils/pricing';
 
@@ -142,6 +143,7 @@ export default function StoryViewer({ story, onClose, onStorySaved, isGenerating
             // story runs past both on its own — the builder returns the
             // real count, and the cover size and Lulu cost use that.
             const minPages = tier === 'hardcover' ? 24 : 32;
+            await loadPrintFontBytes();
             const { pdf: interior, pageCount } = buildPrintPdfWithCount(book, minPages, { pageSizePt: 630, covers: 'lulu' });
             const dimsRes = await fetch(`/.netlify/functions/lulu-cover-dims?tier=${tier}&pages=${pageCount}`);
             const dims = await dimsRes.json().catch(() => ({}));
