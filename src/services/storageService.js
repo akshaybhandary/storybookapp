@@ -125,18 +125,13 @@ export function getApiKey() {
         return null;  // Not needed - serverless function has it
     }
 
-    // Development: Check localStorage first
-    const localKey = localStorage.getItem('openrouter_api_key');
+    // Development: localStorage only. Never read keys from import.meta.env —
+    // Vite inlines every referenced VITE_* variable into the shipped bundle,
+    // which would expose the key to every visitor.
+    const localKey = localStorage.getItem('google_api_key');
     if (localKey) {
         logger.debug('STORAGE', 'API key from localStorage', { hasKey: true });
         return localKey;
-    }
-
-    // Then check .env file (Vite loads VITE_ prefixed vars)
-    const envKey = import.meta.env.VITE_OPENROUTER_API_KEY;
-    if (envKey) {
-        logger.debug('STORAGE', 'API key from .env file', { hasKey: true });
-        return envKey;
     }
 
     logger.debug('STORAGE', 'No API key found');
@@ -162,16 +157,12 @@ export function getOpenRouterKey() {
         return null;
     }
 
+    // Development: localStorage only (see getApiKey — no import.meta.env keys,
+    // they would be inlined into the production bundle).
     const localKey = localStorage.getItem('openrouter_api_key');
     if (localKey) {
         logger.debug('STORAGE', 'OpenRouter key from localStorage', { hasKey: true });
         return localKey;
-    }
-
-    const envKey = import.meta.env.VITE_OPENROUTER_API_KEY;
-    if (envKey) {
-        logger.debug('STORAGE', 'OpenRouter key from .env file', { hasKey: true });
-        return envKey;
     }
 
     logger.debug('STORAGE', 'No OpenRouter key found');

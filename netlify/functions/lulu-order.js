@@ -11,6 +11,11 @@
 //   LULU_CLIENT_SECRET        from Lulu Direct API credentials
 //   LULU_PACKAGE_HARDCOVER    package_id for the 8.5x8.5 hardcover
 //   LULU_PACKAGE_SOFTCOVER    package_id for the 8.5x8.5 softcover
+//   FULFILMENT_SECRET         shared secret — REQUIRED. This endpoint spends
+//                             money (it places print orders), so it is
+//                             default-closed: callers (the Stripe webhook)
+//                             must send it as the x-fulfilment-secret header.
+//                             Until it is set the endpoint returns 501.
 //
 // The sandbox API base is https://api.sandbox.lulu.com, live is
 // https://api.lulu.com — we read LULU_API_BASE to choose.
@@ -31,6 +36,28 @@ exports.handler = async (event) => {
             statusCode: 405,
             headers: CORS_HEADERS,
             body: JSON.stringify({ error: 'Method not allowed' })
+        };
+    }
+
+    // Default-closed: this endpoint places paid print orders, so it only
+    // accepts calls carrying the shared fulfilment secret (sent by the
+    // Stripe webhook after a verified payment).
+    const fulfilmentSecret = process.env.FULFILMENT_SECRET;
+    if (!fulfilmentSecret) {
+        return {
+            statusCode: 501,
+            headers: CORS_HEADERS,
+            body: JSON.stringify({
+                error: 'not_configured',
+                message: 'Print fulfilment is disabled — FULFILMENT_SECRET is not set.'
+            })
+        };
+    }
+    if (event.headers['x-fulfilment-secret'] !== fulfilmentSecret) {
+        return {
+            statusCode: 403,
+            headers: CORS_HEADERS,
+            body: JSON.stringify({ error: 'Forbidden' })
         };
     }
 

@@ -7,6 +7,13 @@
 //   STRIPE_PRICE_SOFTCOVER         same format
 //   STRIPE_PRICE_HARDCOVER         same format
 //
+// Notes:
+//   - Stripe Tax must be ACTIVE in the same Stripe mode (test/live) as the
+//     secret key, or session creation fails — automatic_tax is enabled below.
+//   - Print tiers collect a shipping address and charge a flat shipping rate
+//     (SHIPPING_FLAT_CENTS, in the session currency). Adjust the rate in one
+//     place here when real Lulu shipping costs are known.
+//
 // The client sends { tier, region } where region is US | CA | GB. Prices are
 // localized per region (USD/CAD/GBP), so configure one Stripe price per
 // currency. A bare price ID (no region prefix) is used for every region.
@@ -21,6 +28,11 @@ const PRICE_ENV = {
 };
 
 const VALID_REGIONS = new Set(['US', 'CA', 'GB']);
+
+// Flat shipping for print tiers, in the session currency's minor units
+// (699 = $6.99 / CA$6.99 / £6.99). Placeholder until Lulu's real per-region
+// shipping is wired — change here only.
+const SHIPPING_FLAT_CENTS = 699;
 
 // Resolve the price ID for the given region. Supports both formats:
 //   "price_123"                       → same ID for every region
@@ -99,15 +111,39 @@ exports.handler = async (event) => {
 
     const origin = event.headers.origin || `https://${event.headers.host}` || 'https://lumifables.com';
 
+    const isPrint = tier === 'softcover' || tier === 'hardcover';
+
     // Create the Checkout Session (Stripe REST API, form-encoded — no SDK needed)
     const params = new URLSearchParams({
         mode: 'payment',
         'line_items[0][price]': priceId,
         'line_items[0][quantity]': '1',
         billing_address_collection: 'auto',
-        success_url: `${origin}/?checkout=success`,
+        allow_promotion_codes: 'true',
+        'automatic_tax[enabled]': 'true',
+        'metadata[tier]': tier,
+        'metadata[region]': region,
+        'payment_intent_data[metadata][tier]': tier,
+        'payment_intent_data[metadata][region]': region,
+        success_url: `${origin}/?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${origin}/?checkout=cancelled`
     });
+
+    // Print orders need a delivery address for the print partner, and carry a
+    // flat shipping charge (session currency) until real rates are wired.
+    if (isPrint) {
+        params.set('shipping_address_collection[allowed_countries][0]', 'US');
+        params.set('shipping_address_collection[allowed_countries][1]', 'CA');
+        params.set('shipping_address_collection[allowed_countries][2]', 'GB');
+        params.set('shipping_options[0][shipping_rate_data][type]', 'fixed_amount');
+        params.set('shipping_options[0][shipping_rate_data][fixed_amount][amount]', String(SHIPPING_FLAT_CENTS));
+        params.set('shipping_options[0][shipping_rate_data][fixed_amount][currency]', region === 'CA' ? 'cad' : region === 'GB' ? 'gbp' : 'usd');
+        params.set('shipping_options[0][shipping_rate_data][display_name]', 'Standard shipping');
+        params.set('shipping_options[0][shipping_rate_data][delivery_estimate][minimum][unit]', 'business_day');
+        params.set('shipping_options[0][shipping_rate_data][delivery_estimate][minimum][value]', '7');
+        params.set('shipping_options[0][shipping_rate_data][delivery_estimate][maximum][unit]', 'business_day');
+        params.set('shipping_options[0][shipping_rate_data][delivery_estimate][maximum][value]', '14');
+    }
 
     try {
         const res = await fetch('https://api.stripe.com/v1/checkout/sessions', {

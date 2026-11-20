@@ -43,10 +43,10 @@ export default function StoryViewer({ story, onClose, onStorySaved, isGenerating
     // Order a printed copy via the Stripe checkout function.
     // Until payments are configured the function returns 501 and we show a
     // friendly "coming soon" instead of an error.
-    const handleOrderPrint = async () => {
+    const handleOrderPrint = async (tier) => {
         setOrderMessage(null);
         try {
-            const { url } = await startCheckout('hardcover');
+            const { url } = await startCheckout(tier);
             window.location.href = url;
         } catch (err) {
             if (err.notConfigured) {
@@ -130,7 +130,15 @@ export default function StoryViewer({ story, onClose, onStorySaved, isGenerating
                             </button>
                             <button
                                 className="action-btn order-print-btn"
-                                onClick={handleOrderPrint}
+                                onClick={() => handleOrderPrint('softcover')}
+                                disabled={isGenerating}
+                                title="Quality 8.5&quot; x 8.5&quot; softcover, shipped to you"
+                            >
+                                🛒 Order Softcover — {pricing.symbol}{pricing.prices.softcover} {pricing.label}
+                            </button>
+                            <button
+                                className="action-btn order-print-btn"
+                                onClick={() => handleOrderPrint('hardcover')}
                                 disabled={isGenerating}
                                 title="Beautiful 8.5&quot; x 8.5&quot; hardcover, shipped to you"
                             >

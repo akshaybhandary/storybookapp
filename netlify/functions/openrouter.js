@@ -19,11 +19,8 @@ export async function handler(event) {
     // Get API key from environment variable (set in Netlify dashboard)
     const apiKey = process.env.OPENROUTER_API_KEY;
 
-    console.log(`[${requestId}] API Key Check:`);
-    console.log(`[${requestId}]   - Exists: ${!!apiKey}`);
-    console.log(`[${requestId}]   - Length: ${apiKey?.length || 0}`);
-    console.log(`[${requestId}]   - Starts with: ${apiKey?.substring(0, 10) || 'N/A'}`);
-    console.log(`[${requestId}]   - All env vars: ${Object.keys(process.env).join(', ')}`);
+    // Never log key material or the environment — just whether it is set.
+    console.log(`[${requestId}] API Key configured: ${!!apiKey}`);
 
     if (!apiKey) {
         console.error(`[${requestId}] CRITICAL: API key not configured`);
@@ -105,8 +102,7 @@ export async function handler(event) {
             body: JSON.stringify({
                 error: 'Failed to call API',
                 message: error.message,
-                requestId,
-                stack: error.stack?.split('\n').slice(0, 3).join('\n')
+                requestId
             })
         };
     }

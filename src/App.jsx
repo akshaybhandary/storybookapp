@@ -12,6 +12,21 @@ function App() {
   const [currentStory, setCurrentStory] = useState(null);
   const [libraryCount, setLibraryCount] = useState(0);
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark');
+  const [checkoutNotice, setCheckoutNotice] = useState(null); // 'success' | 'cancelled'
+
+  // Stripe Checkout returns the visitor to /?checkout=success|cancelled.
+  // Show a notice once, then clean the URL so a refresh doesn't repeat it.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const checkout = params.get('checkout');
+    if (checkout === 'success' || checkout === 'cancelled') {
+      setCheckoutNotice(checkout);
+      params.delete('checkout');
+      params.delete('session_id');
+      const query = params.toString();
+      window.history.replaceState({}, '', window.location.pathname + (query ? `?${query}` : ''));
+    }
+  }, []);
 
   useEffect(() => {
     // Apply theme to document
@@ -87,6 +102,17 @@ function App() {
         onToggleTheme={toggleTheme}
         showNavLinks={!activeModal}
       />
+
+      {checkoutNotice && (
+        <div className={`checkout-banner ${checkoutNotice}`} role="status">
+          <span>
+            {checkoutNotice === 'success'
+              ? '🎉 Payment received — thank you! Your order is in our queue and we\'ll follow up by email with delivery details.'
+              : 'Checkout cancelled — no charge was made. Your book is still here whenever you\'re ready.'}
+          </span>
+          <button className="checkout-banner-close" onClick={() => setCheckoutNotice(null)} aria-label="Dismiss">&times;</button>
+        </div>
+      )}
 
       {/* Show Hero only when no full-page view is active */}
       {(!activeModal || activeModal === 'library') && (
