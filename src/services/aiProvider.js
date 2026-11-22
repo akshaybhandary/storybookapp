@@ -179,7 +179,8 @@ export async function generatePageImage(
     childName = '',
     characterDescription = null,
     storyContext = null,
-    childAge = null
+    childAge = null,
+    referenceImages = []
 ) {
     const provider = getCurrentProvider();
     const apiKey = getProviderApiKey();
@@ -199,7 +200,8 @@ export async function generatePageImage(
                 childName,
                 characterDescription,
                 storyContext,
-                childAge
+                childAge,
+                referenceImages
             ));
     } catch (error) {
         logger.error('PROVIDER', `Image generation failed with ${provider} on page ${pageNumber}`, error);

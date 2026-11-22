@@ -11,21 +11,25 @@ async function generateImagesSequentially(storyContent, photoPreview, childName,
     const pages = [];
     const totalImages = storyContent.pages.length + 1;
     let completedImages = 0;
+    let coverImageUrl = null;
+    const locationAnchors = {};
 
     // Cover image
     setLoadingText('Creating cover illustration...');
     try {
         const coverUrl = await generatePageImage(
-            `Create a stunning storybook cover illustration for "${storyContent.title}". The cover should show ${childName} as the main character in an exciting pose or scene that captures the essence of the story. Style: vibrant, child-friendly, professional children's book cover art.`,
+            `Create a stunning storybook cover illustration. The cover should show ${childName} as the main character in an exciting pose or scene that captures the essence of the story. Style: vibrant, child-friendly, professional children's book cover art. Leave calm, empty space at the top of the image - the title is printed there later. Do not render any title, words, or letters on the cover.`,
             0, photoPreview, childName, characterDescription,
             {
                 characterOutfit: storyContent.characterOutfit,
                 locations: storyContent.locations,
                 currentLocation: storyContent.locations?.[0] || 'magical setting',
-                characters: storyContent.characters || {}
+                characters: storyContent.characters || {},
+                props: storyContent.props || {}
             },
             storyContent.childAge || '4-8'
         );
+        coverImageUrl = coverUrl;
         pages.push({ pageNumber: 0, text: '', image: coverUrl, isCover: true });
     } catch (error) {
         console.warn('Cover generation failed:', error.message);
@@ -40,15 +44,25 @@ async function generateImagesSequentially(storyContent, photoPreview, childName,
         setLoadingText(`Illustrating page ${i + 1} of ${storyContent.pages.length}...`);
 
         try {
+            const pageRefs = [];
+            if (coverImageUrl) pageRefs.push(coverImageUrl);
+            if (pageData.location && locationAnchors[pageData.location]) pageRefs.push(locationAnchors[pageData.location]);
             const imageUrl = await generatePageImage(
                 pageData.imagePrompt, i + 1, photoPreview, childName, characterDescription,
                 {
                     characterOutfit: storyContent.characterOutfit,
                     locations: storyContent.locations,
                     currentLocation: pageData.location,
-                    characters: storyContent.characters || {}
-                }
+                    characters: storyContent.characters || {},
+                    props: storyContent.props || {},
+                    propsPresent: pageData.propsPresent || []
+                },
+                undefined,
+                pageRefs
             );
+            if (imageUrl && pageData.location && !locationAnchors[pageData.location]) {
+                locationAnchors[pageData.location] = imageUrl;
+            }
             pages.push({ pageNumber: pageData.pageNumber, text: pageData.text, image: imageUrl });
         } catch (error) {
             console.warn(`Page ${i + 1} image failed:`, error.message);
@@ -165,17 +179,22 @@ export default function StoryCreator({ onClose, onStoryGenerated, onPageUpdate }
             let completedImages = 0;
 
             // Generate cover first
+            let coverImageUrl = null;
+            const locationAnchors = {};
             try {
                 const coverUrl = await generatePageImage(
-                    `Create a stunning storybook cover illustration for "${storyContent.title}". The cover should show ${childName} as the main character in an exciting pose or scene that captures the essence of the story. Style: vibrant, child-friendly, professional children's book cover art.`,
+                    `Create a stunning storybook cover illustration. The cover should show ${childName} as the main character in an exciting pose or scene that captures the essence of the story. Style: vibrant, child-friendly, professional children's book cover art. Leave calm, empty space at the top of the image - the title is printed there later. Do not render any title, words, or letters on the cover.`,
                     0, photoPreview, childName, characterDescription,
                     {
+                        characterOutfit: storyContent.characterOutfit,
                         locations: storyContent.locations,
                         currentLocation: storyContent.locations?.[0] || 'magical setting',
-                        characters: storyContent.characters || {}
+                        characters: storyContent.characters || {},
+                        props: storyContent.props || {}
                     },
                     childAge
                 );
+                coverImageUrl = coverUrl;
                 completedImages++;
                 onPageUpdate(0, coverUrl, completedImages === totalImages);
             } catch (error) {
@@ -189,6 +208,9 @@ export default function StoryCreator({ onClose, onStoryGenerated, onPageUpdate }
                 const pageData = storyContent.pages[i];
 
                 try {
+                    const pageRefs = [];
+                    if (coverImageUrl) pageRefs.push(coverImageUrl);
+                    if (pageData.location && locationAnchors[pageData.location]) pageRefs.push(locationAnchors[pageData.location]);
                     const imageUrl = await generatePageImage(
                         pageData.imagePrompt,
                         pageData.pageNumber,
@@ -196,11 +218,19 @@ export default function StoryCreator({ onClose, onStoryGenerated, onPageUpdate }
                         childName,
                         characterDescription,
                         {
+                            characterOutfit: storyContent.characterOutfit,
+                            locations: storyContent.locations,
                             currentLocation: pageData.location,
-                            characters: storyContent.characters || {}
+                            characters: storyContent.characters || {},
+                            props: storyContent.props || {},
+                            propsPresent: pageData.propsPresent || []
                         },
-                        childAge
+                        childAge,
+                        pageRefs
                     );
+                    if (imageUrl && pageData.location && !locationAnchors[pageData.location]) {
+                        locationAnchors[pageData.location] = imageUrl;
+                    }
                     completedImages++;
                     onPageUpdate(pageData.pageNumber, imageUrl, completedImages === totalImages);
                 } catch (error) {

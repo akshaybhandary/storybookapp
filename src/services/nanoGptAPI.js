@@ -153,6 +153,57 @@ function parseStoryJson(content) {
     }
 }
 
+
+/**
+ * Consistency repair: the story model sometimes sets pages in locations it
+ * never defined (or uses props it never defined), leaving those pages with
+ * no visual anchor. Ask the text model to define just the missing entries
+ * and merge them in; fall back to a generic definition so no page is left
+ * without one.
+ */
+async function repairStoryConsistency(storyData, apiKey) {
+    try {
+        storyData.locations = storyData.locations || {};
+        storyData.props = storyData.props || {};
+        const pages = storyData.pages || [];
+        const missingLocations = [...new Set(pages.map(p => p.location).filter(l => l && !storyData.locations[l]))];
+        const missingProps = [...new Set(pages.flatMap(p => p.propsPresent || []).filter(n => !storyData.props[n]))];
+        if (!missingLocations.length && !missingProps.length) return storyData;
+
+        logger.warn('STORY-GEN', 'Repairing undefined locations/props', { missingLocations, missingProps });
+        const data = await callChat({
+            model: TEXT_MODEL,
+            messages: [{
+                role: 'user',
+                content: `A children's storybook titled "${storyData.title}" needs visual-consistency definitions. Story outfit: ${storyData.characterOutfit || 'unknown'}. Locations already defined: ${Object.keys(storyData.locations).join(', ') || 'none'}.
+
+Define each of these in the SAME style (specific colors, key features, details an illustrator can reproduce identically):
+- Locations needing a definition: ${JSON.stringify(missingLocations)}
+- Recurring objects (props) needing a definition: ${JSON.stringify(missingProps)}
+
+Respond with JSON only: { "locations": { "name": "vivid description" }, "props": { "name": "detailed description" } }`
+            }],
+            response_format: { type: 'json_object' }
+        }, apiKey);
+        const content = data.choices?.[0]?.message?.content || '';
+        const match = content.match(/\{[\s\S]*\}/);
+        if (match) {
+            const parsed = JSON.parse(match[0]);
+            for (const l of missingLocations) if (parsed.locations?.[l]) storyData.locations[l] = parsed.locations[l];
+            for (const n of missingProps) if (parsed.props?.[n]) storyData.props[n] = parsed.props[n];
+        }
+        for (const l of missingLocations) {
+            if (!storyData.locations[l]) storyData.locations[l] = `${l}: a distinctive place that looks exactly the same in every illustration - same colors, layout, furniture and key features every time it appears.`;
+        }
+        for (const n of missingProps) {
+            if (!storyData.props[n]) storyData.props[n] = `${n}: a distinctive object that looks exactly the same in every illustration - same colors, shape, size and details every time it appears.`;
+        }
+    } catch (e) {
+        logger.warn('STORY-GEN', 'Consistency repair failed (continuing)', { error: e.message });
+    }
+    return storyData;
+}
+
 /**
  * Generate story content (same prompt + output shape as the OpenRouter path)
  */
@@ -195,12 +246,10 @@ STORYTELLING EXCELLENCE REQUIREMENTS:
    - Final pages: Climax, resolution, heartwarming ending with a gentle lesson
 
 5. VISUAL CONSISTENCY (CRITICAL):
-   - OUTFIT: ${childName} wears ONE specific outfit throughout. Define it clearly.
-   - LOCATIONS: Each location has consistent colors, furniture, and style whenever it appears
-   - **CHARACTERS**: Define ALL characters (friends, animals, adults) with specific appearance details. They MUST look exactly the same on every page!
-   - Example outfit: "a cozy blue hoodie with a friendly dinosaur, green cargo pants, red sneakers"
-   - Example location: "A sunlit bedroom with yellow walls, a wooden bed with star-patterned sheets, a round window with curtains"
-   - Example character: "Luna the cat: small fluffy white cat with bright green eyes, pink collar with bell, always playful"
+   - OUTFIT: ${childName} wears ONE specific outfit throughout. Define it clearly, with specific colors and details. Invent an outfit that fits this story's theme.
+   - LOCATIONS: Each location has consistent colors, furniture, and style whenever it appears. EVERY place any page is set in MUST be defined in "locations" - including the main setting and interiors. A page may only use a location name that exists in "locations".
+   - **CHARACTERS**: Define ALL characters (friends, animals, adults) with specific appearance details. They MUST look exactly the same on every page! Invent original characters for this story.
+   - PROPS: Any object that appears on more than one page (something ${childName} carries or uses, a magical item, a favourite toy) MUST be defined once in "props" with specific colors, shape, size and details, and listed in that page's "propsPresent". It MUST look identical every time it appears.
 
 6. THEMES TO WEAVE IN:
    - Friendship, courage, kindness, or curiosity (subtle, not preachy)
@@ -221,12 +270,17 @@ OUTPUT FORMAT (JSON):
         "locationName1": "Vivid description: colors, key features, atmosphere",
         "locationName2": "Vivid description: colors, key features, atmosphere"
     },
+    "props": {
+        "propName1": "Detailed description of a recurring object: colors, shape, size, distinctive details",
+        "propName2": "Detailed description of another recurring object (only include objects that appear on 2 or more pages)"
+    },
     "pages": [
         {
             "pageNumber": 1,
             "text": "Engaging text (2-4 sentences max). Use vivid verbs. Include sensory details.",
             "location": "locationName1",
             "charactersPresent": ["${childName}", "characterName2"],
+            "propsPresent": ["propName1"],
             "imagePrompt": "Detailed scene: ${childName} in [exact outfit], [other characters with exact appearance], at [location with specific details], doing [specific action with emotion]"
         }
         ... (${pageCount} pages)
@@ -246,6 +300,7 @@ QUALITY STANDARD: Write as if this will be professionally published. Every sente
     const content = data.choices?.[0]?.message?.content;
     if (!content) throw new Error('NanoGPT returned no story content');
     const storyData = parseStoryJson(content);
+    await repairStoryConsistency(storyData, apiKey);
     logger.info('STORY-GEN', 'NanoGPT story parsed', { title: storyData.title, pageCount: storyData.pages?.length });
     return storyData;
 }
@@ -330,7 +385,7 @@ Respond with a JSON object:
  * Generate one page image with Seedream, using the child's photo as the
  * reference image so the character carries across pages.
  */
-export async function generatePageImage(imagePrompt, apiKey, pageNumber = 0, childPhoto = null, childName = '', characterDescription = null, storyContext = null, childAge = null) {
+export async function generatePageImage(imagePrompt, apiKey, pageNumber = 0, childPhoto = null, childName = '', characterDescription = null, storyContext = null, childAge = null, referenceImages = []) {
     logger.imageGenerationStart(pageNumber, imagePrompt);
 
     let characterRef = '';
@@ -353,10 +408,24 @@ IMPORTANT: The hair MUST look exactly the same as in the reference photo and all
     }
 
     let storyConsistency = '';
+
+    let propsBlock = '';
+    if (storyContext && storyContext.props) {
+        const presentProps = (Array.isArray(storyContext.propsPresent) && storyContext.propsPresent.length
+            ? storyContext.propsPresent
+            : Object.keys(storyContext.props)).filter(n => storyContext.props[n]);
+        if (presentProps.length) {
+            propsBlock = `
+KEY OBJECTS IN THIS SCENE (MUST LOOK IDENTICAL EVERY TIME THEY APPEAR):
+${presentProps.map(n => `- ${n}: ${storyContext.props[n]}`).join('\n')}
+`;
+        }
+    }
     if (storyContext) {
         storyConsistency = `
 OUTFIT (MUST BE EXACTLY THE SAME IN ALL ILLUSTRATIONS):
 ${storyContext.characterOutfit || 'match the reference photo clothing'}
+${propsBlock}
 
 ${storyContext.currentLocation && storyContext.locations && storyContext.locations[storyContext.currentLocation] ? `
 CURRENT LOCATION - ${storyContext.currentLocation.toUpperCase()}:
@@ -396,7 +465,12 @@ No text, words, letters, or watermarks anywhere in the image.`;
         size: IMAGE_SIZE,
         n: 1
     };
-    if (childPhoto) body.imageDataUrls = [await downscaleDataUrl(childPhoto)];
+    const refs = [];
+    if (childPhoto) refs.push(await downscaleDataUrl(childPhoto));
+    for (const ref of (referenceImages || []).slice(0, 3)) {
+        if (ref) refs.push(await downscaleDataUrl(ref));
+    }
+    if (refs.length) body.imageDataUrls = refs;
 
     const dataUrl = await callImage(body);
     logger.imageGenerationSuccess(pageNumber, 0, true);
