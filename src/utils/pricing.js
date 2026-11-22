@@ -6,8 +6,8 @@ import { useEffect, useState } from 'react';
  * with a small FX buffer built in.
  */
 const REGIONS = {
-    US: { currency: 'USD', symbol: '$', label: 'USD', prices: { digital: 12, softcover: 29, hardcover: 49 } },
-    CA: { currency: 'CAD', symbol: '$', label: 'CAD', prices: { digital: 16, softcover: 39, hardcover: 65 } },
+    US: { currency: 'USD', symbol: '$', label: 'USD', prices: { digital: 9.99, softcover: 29, hardcover: 47.99 } },
+    CA: { currency: 'CAD', symbol: '$', label: 'CAD', prices: { digital: 12.99, softcover: 39, hardcover: 59.99 } },
     GB: { currency: 'GBP', symbol: '£', label: 'GBP', prices: { digital: 10, softcover: 24, hardcover: 32 } },
 };
 const DEFAULT_REGION = 'US';
